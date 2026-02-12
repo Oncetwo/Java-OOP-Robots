@@ -1,6 +1,6 @@
 package log;
 
-public class LogEntry
+public class LogEntry // класс для записи логов
 {
     private LogLevel m_logLevel;
     private String m_strMessage;
