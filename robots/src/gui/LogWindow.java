@@ -3,6 +3,7 @@ package gui;
 import java.awt.BorderLayout;
 import java.awt.EventQueue;
 import java.awt.TextArea;
+import java.util.ResourceBundle;
 
 import javax.swing.JInternalFrame;
 import javax.swing.JPanel;
@@ -13,18 +14,21 @@ import log.LogChangeListener;
 import log.LogEntry;
 import log.LogWindowSource;
 
-
-public class LogWindow extends JInternalFrame implements LogChangeListener
+public class LogWindow extends JInternalFrame implements LogChangeListener, Localizable
 {
 	// LogWindowSource - класс, который хранит сообщения лога и управляет слушателями (из пакета log)
     private final LogWindowSource m_logSource; // хранится ссылка на объект LogWindowSource
     
-    // компонент Swing для отображения и редактирования многострочного текста (переменная хранит текстовое поле, в котором ПОКАЗЫВАЮТСЯ сообщения лога)
+    // компонента Swing для отображения и редактирования многострочного текста (переменная хранит текстовое поле, в котором ПОКАЗЫВАЮТСЯ сообщения лога)
     private final TextArea m_logContent; 
+    
+    // Храним bundle для обновления заголовка
+    private ResourceBundle bundle;
 
-    public LogWindow(LogWindowSource logSource) // передаем в конструктор источник логов
+    public LogWindow(LogWindowSource logSource, ResourceBundle bundle) 
     {
-        super("Протокол работы", true, true, true, true); // вызов конструктора родительского класса
+        super(bundle.getString("window.log.title"), true, true, true, true); 
+        this.bundle = bundle; 
         m_logSource = logSource; 
         
         m_logSource.registerListener(this); // Подписываемся на уведомления (registerListener() — метод, который добавляет слушателя)
@@ -49,6 +53,13 @@ public class LogWindow extends JInternalFrame implements LogChangeListener
     }
 
 
+    @Override
+    public void updateLanguage(ResourceBundle newBundle) {
+        this.bundle = newBundle;
+        setTitle(bundle.getString("window.log.title")); // обновляем заголовок окна
+    }
+
+    
     private void updateLogContent() // Обновление содержимого лога на экране (вызывается, когда приходят новые сообщения)
     {
         StringBuilder content = new StringBuilder();
@@ -62,7 +73,6 @@ public class LogWindow extends JInternalFrame implements LogChangeListener
         m_logContent.invalidate(); // Помечаем для перерисовки
     }
     
-
     @Override
     public void onLogChanged() // Метод интерфейса LogChangeListener
     {
