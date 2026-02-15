@@ -1,9 +1,9 @@
 package log;
 
-public class LogEntry // класс для записи логов
+public class LogEntry // класс для записи логов (одна запись в логе)
 {
-    private LogLevel m_logLevel;
-    private String m_strMessage;
+    private LogLevel m_logLevel; // уровень важности
+    private String m_strMessage; // текст сообщения
     
     public LogEntry(LogLevel logLevel, String strMessage)
     {

@@ -1,7 +1,7 @@
 package log;
 
 public enum LogLevel
-{
+{ // константы, каждой приписано числовое значение (важность)
     Trace(0),
     Debug(1),
     Info(2),
@@ -11,12 +11,12 @@ public enum LogLevel
     
     private int m_iLevel;
     
-    private LogLevel(int iLevel)
+    private LogLevel(int iLevel) // конструктор
     {
         m_iLevel = iLevel;
     }
     
-    public int level()
+    public int level() // сеттер
     {
         return m_iLevel;
     }
