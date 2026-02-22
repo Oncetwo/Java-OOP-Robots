@@ -88,27 +88,74 @@ public class GameVisualizer extends JPanel
         
         return asNormalizedRadians(Math.atan2(diffY, diffX));
     }
-    
+
     protected void onModelUpdateEvent()
     {
-        double distance = distance(m_targetPositionX, m_targetPositionY, 
-            m_robotPositionX, m_robotPositionY);
+        double distance = distance(m_targetPositionX, m_targetPositionY,
+                m_robotPositionX, m_robotPositionY);
+
+        // Если достаточно близко к цели - стоп
         if (distance < 0.5)
         {
             return;
         }
-        double velocity = maxVelocity;
-        double angleToTarget = angleTo(m_robotPositionX, m_robotPositionY, m_targetPositionX, m_targetPositionY);
+
+        double angleToTarget = angleTo(m_robotPositionX, m_robotPositionY,
+                m_targetPositionX, m_targetPositionY);
+
+        // Вычисляем разницу углов, нормализованную к диапазону [-π, π]
+        double angleDifference = angleToTarget - m_robotDirection;
+
+        // Нормализуем разницу к диапазону [-π, π]
+        while (angleDifference > Math.PI)
+        {
+            angleDifference -= 2 * Math.PI;
+        }
+        while (angleDifference < -Math.PI)
+        {
+            angleDifference += 2 * Math.PI;
+        }
+
+        // Порог поворота: если угол больше этого значения, сначала поворачиваемся
+        double orientationThreshold = 0.1; // примерно 5.7 градусов
+
+        double velocity;
         double angularVelocity = 0;
-        if (angleToTarget > m_robotDirection)
+
+        // Проверяем, смотрит ли робот в сторону цели
+        if (Math.abs(angleDifference) > orientationThreshold)
         {
-            angularVelocity = maxAngularVelocity;
+            // Сначала поворачиваемся (медленно движемся, активно вращаемся)
+            velocity = maxVelocity * 0.3; // Уменьшаем скорость вперед при повороте
+
+            if (angleDifference > 0)
+            {
+                angularVelocity = maxAngularVelocity;
+            }
+            else
+            {
+                angularVelocity = -maxAngularVelocity;
+            }
         }
-        if (angleToTarget < m_robotDirection)
+        else
         {
-            angularVelocity = -maxAngularVelocity;
+            // Смотрим на цель - едим вперед на полной скорос��и
+            velocity = maxVelocity;
+
+            // Легкая коррекция направления (если слегка не точно)
+            if (Math.abs(angleDifference) > 0.01)
+            {
+                if (angleDifference > 0)
+                {
+                    angularVelocity = maxAngularVelocity * 0.5;
+                }
+                else
+                {
+                    angularVelocity = -maxAngularVelocity * 0.5;
+                }
+            }
         }
-        
+
         moveRobot(velocity, angularVelocity, 10);
     }
     
