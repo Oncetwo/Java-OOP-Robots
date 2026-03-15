@@ -8,6 +8,12 @@ import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
 
+import java.beans.PropertyVetoException;
+import java.time.format.DateTimeFormatter;
+import java.time.LocalDateTime;
+import gui.Profile;
+import gui.WindowState;
+import gui.ProfileManager;
 import javax.swing.ButtonGroup;
 import javax.swing.JDesktopPane;
 import javax.swing.JFrame;
@@ -163,7 +169,8 @@ public class MainApplicationFrame extends JFrame // главное окно пр
         );
         
         if (result == JOptionPane.YES_OPTION) {
-            Logger.debug(bundle.getString("log.message.appClosed")); 
+            Logger.debug(bundle.getString("log.message.appClosed"));
+            saveCurrentProfile();
             System.exit(0);
         }
     }
@@ -295,6 +302,79 @@ public class MainApplicationFrame extends JFrame // главное окно пр
             | IllegalAccessException | UnsupportedLookAndFeelException e)
         {
             // just ignore
+        }
+    }
+
+    // Сохраняет текущий профиль (называем профиль timestamp'ом)
+    public void saveCurrentProfile() {
+        try { // создаём имя профиля по времени
+            String profileName = "profile_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+            List<WindowState> states = new ArrayList<>();
+
+            // лог
+            if (logWindow != null) {
+                states.add(new WindowState(
+                        "log",
+                        logWindow.getX(), logWindow.getY(),
+                        logWindow.getWidth(), logWindow.getHeight(),
+                        logWindow.isVisible(),
+                        logWindow.isIcon(),
+                        logWindow.isMaximum()
+                ));
+            }
+
+            // игра
+            if (gameWindow != null) {
+                states.add(new WindowState(
+                        "game",
+                        gameWindow.getX(), gameWindow.getY(),
+                        gameWindow.getWidth(), gameWindow.getHeight(),
+                        gameWindow.isVisible(),
+                        gameWindow.isIcon(),
+                        gameWindow.isMaximum()
+                ));
+            }
+
+            Profile p = new Profile(profileName, currentLocale.getLanguage(), states); // создали профиль
+            ProfileManager.saveProfile(p);
+            Logger.debug(bundle.getString("log.message.profileSaved").replace("{0}", profileName));
+        } catch (Exception ex) {
+            // не ломаем выход приложения из-за ошибки сохранения профиля
+            Logger.error("Failed to save profile: " + ex.getMessage());
+        }
+    }
+
+    // Восстанавливает профиль в уже созданном окне
+    public void restoreProfile(Profile p) {
+        if (p == null) return;
+
+        // Сначала восстановим локаль, если она отличается
+        try {
+            if (p.getLocaleLanguage() != null && !p.getLocaleLanguage().equals(currentLocale.getLanguage())) {
+                switchLanguage(Locale.of(p.getLocaleLanguage())); // switchLanguage приватный — доступен внутри класса
+            }
+        } catch (Exception e) {
+            // игнорируем неверные локали
+        }
+
+        for (WindowState ws : p.getWindows()) {
+            try {
+                if ("log".equals(ws.getId()) && logWindow != null) { // восстанавливаем профиль
+                    logWindow.setLocation(ws.getX(), ws.getY());
+                    logWindow.setSize(ws.getWidth(), ws.getHeight());
+                    logWindow.setVisible(ws.isVisible());
+                    try { logWindow.setIcon(ws.isIcon()); } catch (PropertyVetoException ex) {}
+                    try { logWindow.setMaximum(ws.isMaximized()); } catch (PropertyVetoException ex) {}
+                } else if ("game".equals(ws.getId()) && gameWindow != null) {
+                    gameWindow.setLocation(ws.getX(), ws.getY());
+                    gameWindow.setSize(ws.getWidth(), ws.getHeight());
+                    gameWindow.setVisible(ws.isVisible());
+                    try { gameWindow.setIcon(ws.isIcon()); } catch (PropertyVetoException ex) {}
+                    try { gameWindow.setMaximum(ws.isMaximized()); } catch (PropertyVetoException ex) {}
+                }
+            } catch (Exception ex) {
+                // не прерываем восстановление при ошибке частичного окна
+            }
         }
     }
 }

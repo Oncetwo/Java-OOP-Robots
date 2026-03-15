@@ -94,7 +94,6 @@ public class GameVisualizer extends JPanel
         double distance = distance(m_targetPositionX, m_targetPositionY,
                 m_robotPositionX, m_robotPositionY);
 
-        // Если достаточно близко к цели - стоп
         if (distance < 0.5)
         {
             return;
@@ -103,10 +102,8 @@ public class GameVisualizer extends JPanel
         double angleToTarget = angleTo(m_robotPositionX, m_robotPositionY,
                 m_targetPositionX, m_targetPositionY);
 
-        // Вычисляем разницу углов, нормализованную к диапазону [-π, π]
         double angleDifference = angleToTarget - m_robotDirection;
 
-        // Нормализуем разницу к диапазону [-π, π]
         while (angleDifference > Math.PI)
         {
             angleDifference -= 2 * Math.PI;
@@ -116,7 +113,6 @@ public class GameVisualizer extends JPanel
             angleDifference += 2 * Math.PI;
         }
 
-        // Порог поворота: если угол больше этого значения, сначала поворачиваемся
         double orientationThreshold = 0.1; // примерно 5.7 градусов
 
         double velocity;
@@ -139,7 +135,7 @@ public class GameVisualizer extends JPanel
         }
         else
         {
-            // Смотрим на цель - едим вперед на полной скорос��и
+            // Смотрим на цель - едим вперед на полной скорости
             velocity = maxVelocity;
 
             // Легкая коррекция направления (если слегка не точно)
