@@ -305,13 +305,12 @@ public class MainApplicationFrame extends JFrame // главное окно пр
         }
     }
 
-    // Сохраняет текущий профиль (называем профиль timestamp'ом)
+    // Сохраняет текущий профиль
     public void saveCurrentProfile() {
         try { // создаём имя профиля по времени
             String profileName = "profile_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
             List<WindowState> states = new ArrayList<>();
 
-            // лог
             if (logWindow != null) {
                 states.add(new WindowState(
                         "log",
@@ -345,24 +344,25 @@ public class MainApplicationFrame extends JFrame // главное окно пр
     }
 
     // Восстанавливает профиль в уже созданном окне
-    public void restoreProfile(Profile p) {
-        if (p == null) return;
+    public void restoreProfile(Profile profile) {
+        if (profile == null) return;
 
         // Сначала восстановим локаль, если она отличается
         try {
-            if (p.getLocaleLanguage() != null && !p.getLocaleLanguage().equals(currentLocale.getLanguage())) {
-                switchLanguage(Locale.of(p.getLocaleLanguage())); // switchLanguage приватный — доступен внутри класса
+            if (profile.getLocaleLanguage() != null && !profile.getLocaleLanguage().equals(currentLocale.getLanguage())) {
+                switchLanguage(Locale.of(profile.getLocaleLanguage())); // switchLanguage приватный — доступен внутри класса
             }
         } catch (Exception e) {
-            // игнорируем неверные локали
+            //ignooooreeee
         }
 
-        for (WindowState ws : p.getWindows()) {
+        for (WindowState ws : profile.getWindows()) {
             try {
                 if ("log".equals(ws.getId()) && logWindow != null) { // восстанавливаем профиль
                     logWindow.setLocation(ws.getX(), ws.getY());
                     logWindow.setSize(ws.getWidth(), ws.getHeight());
                     logWindow.setVisible(ws.isVisible());
+                    logWindow.setVisible(true);
                     try { logWindow.setIcon(ws.isIcon()); } catch (PropertyVetoException ex) {}
                     try { logWindow.setMaximum(ws.isMaximized()); } catch (PropertyVetoException ex) {}
                 } else if ("game".equals(ws.getId()) && gameWindow != null) {

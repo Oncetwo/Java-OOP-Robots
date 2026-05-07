@@ -2,8 +2,9 @@ package gui;
 
 import java.awt.BorderLayout;
 import java.awt.EventQueue;
-import java.awt.TextArea;
+import javax.swing.JTextArea;
 import java.util.ResourceBundle;
+import javax.swing.JScrollPane;
 
 import javax.swing.JInternalFrame;
 import javax.swing.JPanel;
@@ -20,7 +21,7 @@ public class LogWindow extends JInternalFrame implements LogChangeListener, Loca
     private final LogWindowSource m_logSource; // хранится ссылка на объект LogWindowSource
     
     // компонента Swing для отображения и редактирования многострочного текста (переменная хранит текстовое поле, в котором ПОКАЗЫВАЮТСЯ сообщения лога)
-    private final TextArea m_logContent; 
+    private final JTextArea m_logContent;
     
     // Храним bundle для обновления заголовка
     private ResourceBundle bundle;
@@ -33,11 +34,15 @@ public class LogWindow extends JInternalFrame implements LogChangeListener, Loca
         
         m_logSource.registerListener(this); // Подписываемся на уведомления (registerListener() — метод, который добавляет слушателя)
         
-        m_logContent = new TextArea(""); // создаем тектовое поле
+        m_logContent = new JTextArea(""); // создаем тектовое поле
         m_logContent.setSize(200, 500); // устанавливаем размер поля
         m_logContent.setEditable(false);  // запрещаем редактирование
         
-        JPanel panel = new JPanel(new BorderLayout()); // создаем панель с менеджером компановки, который делит область на 5 частей
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.add(new JScrollPane(m_logContent), BorderLayout.CENTER);
+        getContentPane().add(panel);
+        pack();
+        updateLogContent();// создаем панель с менеджером компановки, который делит область на 5 частей
         panel.add(m_logContent, BorderLayout.CENTER); // помещаем текстовое поле в центр
         getContentPane().add(panel); // добавляем панель в окно
         pack(); // эта штука вычисляет оптимальный размер окна на основе содержимого

@@ -98,10 +98,10 @@ public class GameVisualizer extends JPanel
         {
             return;
         }
-
+        //поиск крайтчайшего пути
         double angleToTarget = angleTo(m_robotPositionX, m_robotPositionY,
                 m_targetPositionX, m_targetPositionY);
-
+        //приводим к диапазону -pi до pi
         double angleDifference = angleToTarget - m_robotDirection;
 
         while (angleDifference > Math.PI)
