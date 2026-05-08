@@ -31,3 +31,4 @@ build/
 .DS_Store
 
 src/all_code.txt
+/bin/

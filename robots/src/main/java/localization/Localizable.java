@@ -1,4 +1,5 @@
-package gui;
+package localization;
+
 
 import java.util.ResourceBundle;
 

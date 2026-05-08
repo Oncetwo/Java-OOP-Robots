@@ -5,6 +5,7 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.event.ActionEvent;
 import java.io.File;
 import java.awt.Dimension;
+
 import java.awt.Toolkit;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
@@ -33,6 +34,7 @@ import api.IRobotPlugin;
 import java.awt.event.WindowAdapter;
 
 import log.Logger;
+import localization.Localizable;
 
 public class MainApplicationFrame extends JFrame // главное окно приложения (JFrame — главное окно)
 {
@@ -61,12 +63,14 @@ public class MainApplicationFrame extends JFrame // главное окно пр
         
         
         logWindow = createLogWindow();
-        addWindowWithConfirmation(logWindow);
+        desktopPane.add(logWindow);
+        logWindow.setVisible(true);
         localizableWindows.add(logWindow); // добавляем в список локализуемых окон
 
         gameWindow = new GameWindow(bundle);
         gameWindow.setSize(400,  400);
-        addWindowWithConfirmation(gameWindow);
+        desktopPane.add(gameWindow);
+        gameWindow.setVisible(true);
         localizableWindows.add(gameWindow);
 
         setJMenuBar(generateMenuBar()); // метод JFrame для установки меню
@@ -125,40 +129,7 @@ public class MainApplicationFrame extends JFrame // главное окно пр
 // 
 //        return menuBar;
 //    }
-
-    
-    protected void addWindowWithConfirmation(JInternalFrame frame) { // метод добавляет окно с подтверждением закрытия
-        frame.setDefaultCloseOperation(JInternalFrame.DO_NOTHING_ON_CLOSE); // Отключаем стандартное закрытие
-        
-        // Добавляем слушатель, который перехватывает событие закрытия
-        frame.addInternalFrameListener(new InternalFrameAdapter() { // InternalFrameAdapter — аналог WindowAdapter, но для внутренних окон
-            @Override
-            public void internalFrameClosing(InternalFrameEvent e) {
-                confirmCloseFrame(frame);  // показываем диалог подтверждения
-            }
-        });
-        
-        desktopPane.add(frame);
-        frame.setVisible(true);
-    }
-    
-   
-    private void confirmCloseFrame(JInternalFrame frame) {// показывает диалог подтверждения закрытия отдельного окна
-        int result = JOptionPane.showConfirmDialog( // статический метод, который показывает стандартный диалог с вопросом
-            this, // 1) ссылка на текущее главное окно (диалог в центре главного окна)
-            bundle.getString("dialog.confirm.close").replace("{0}", frame.getTitle()), // ключ для "Закрыть окно"
-            bundle.getString("dialog.confirm.title"), // ключ названия окна
-            JOptionPane.YES_NO_OPTION, // 3) тип кнопок
-            JOptionPane.QUESTION_MESSAGE // 4) тип сообщения (появляется иконка вопроса)
-        );
-        
-        if (result == JOptionPane.YES_OPTION) {
-            frame.dispose(); // закрываем окно
-            Logger.debug(bundle.getString("log.message.windowClosed") 
-                .replace("{0}", frame.getTitle())); // ключ для "Окно "название" закрыто"
-        }
-    }
-    
+  
    
     private void confirmExitApplication() { // показывает диалог подтверждения выхода из приложения
         int result = JOptionPane.showConfirmDialog(
@@ -185,7 +156,7 @@ public class MainApplicationFrame extends JFrame // главное окно пр
         this.bundle = newBundle; // Обновляем bundle в главном окне
         this.currentLocale = newLocale; // сохраняем выбранный язык
         
-        for (Localizable window : localizableWindows) { // Обновляем все локализуемые окна через интерфейс
+        for (Localizable window : localizableWindows) { // Обновляем все локализуемые окна 
             window.updateLanguage(newBundle);
         }
         
