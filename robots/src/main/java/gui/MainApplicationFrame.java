@@ -1,5 +1,9 @@
 package gui;
 
+import javax.swing.JFileChooser;
+import javax.swing.filechooser.FileNameExtensionFilter;
+import java.awt.event.ActionEvent;
+import java.io.File;
 import java.awt.Dimension;
 import java.awt.Toolkit;
 import java.awt.event.KeyEvent;
@@ -7,13 +11,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
-
 import java.beans.PropertyVetoException;
 import java.time.format.DateTimeFormatter;
 import java.time.LocalDateTime;
-import gui.Profile;
-import gui.WindowState;
-import gui.ProfileManager;
 import javax.swing.ButtonGroup;
 import javax.swing.JDesktopPane;
 import javax.swing.JFrame;
@@ -28,6 +28,7 @@ import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.event.InternalFrameAdapter;
 import javax.swing.event.InternalFrameEvent;
+import api.IRobotPlugin;
 
 import java.awt.event.WindowAdapter;
 
@@ -200,6 +201,7 @@ public class MainApplicationFrame extends JFrame // главное окно пр
         menuBar.add(createLanguageMenu());
         menuBar.add(createLookAndFeelMenu());
         menuBar.add(createTestMenu());
+        menuBar.add(createPluginMenu());
 
         return menuBar;
     }
@@ -363,8 +365,8 @@ public class MainApplicationFrame extends JFrame // главное окно пр
                     logWindow.setSize(ws.getWidth(), ws.getHeight());
                     logWindow.setVisible(ws.isVisible());
                     logWindow.setVisible(true);
-                    try { logWindow.setIcon(ws.isIcon()); } catch (PropertyVetoException ex) {}
                     try { logWindow.setMaximum(ws.isMaximized()); } catch (PropertyVetoException ex) {}
+                    try { logWindow.setIcon(ws.isIcon()); } catch (PropertyVetoException ex) {}
                 } else if ("game".equals(ws.getId()) && gameWindow != null) {
                     gameWindow.setLocation(ws.getX(), ws.getY());
                     gameWindow.setSize(ws.getWidth(), ws.getHeight());
@@ -376,5 +378,42 @@ public class MainApplicationFrame extends JFrame // главное окно пр
                 // не прерываем восстановление при ошибке частичного окна
             }
         }
+    }
+
+    private JMenu createPluginMenu() {
+        JMenu pluginMenu = new JMenu("Плагины");
+        pluginMenu.setMnemonic(KeyEvent.VK_P);
+
+        JMenuItem loadItem = new JMenuItem("Загрузить робота (JAR)...");
+        loadItem.addActionListener((ActionEvent e) -> {
+            // Открываем диалоговое окно выбора файла
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setDialogTitle("Выберите JAR файл плагина");
+            fileChooser.setFileFilter(new FileNameExtensionFilter("JAR Files (*.jar)", "jar"));
+
+            // Если пользователь выбрал файл и нажал "ОК"
+            if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+                File jarFile = fileChooser.getSelectedFile();
+                try {
+                    // Загружаем плагин через наш лоадер
+                    IRobotPlugin plugin = PluginLoader.loadPlugin(jarFile);
+
+                    // Устанавливаем плагин в игровое окно (если оно открыто)
+                    if (gameWindow != null) {
+                        gameWindow.setRobotPlugin(plugin);
+                        Logger.debug("Плагин успешно загружен: " + plugin.getName());
+                    }
+                } catch (Exception ex) {
+                    Logger.error("Ошибка загрузки плагина: " + ex.getMessage());
+                    JOptionPane.showMessageDialog(this,
+                            "Не удалось загрузить плагин:\n" + ex.getMessage(),
+                            "Ошибка загрузки",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+
+        pluginMenu.add(loadItem);
+        return pluginMenu;
     }
 }

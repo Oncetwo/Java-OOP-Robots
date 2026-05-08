@@ -31,4 +31,10 @@ public class GameWindow extends JInternalFrame implements Localizable
         this.bundle = newBundle;
         setTitle(bundle.getString("window.game.title")); // обновляем заголовок окна
     }
+
+    public void setRobotPlugin(api.IRobotPlugin plugin) {
+        if (m_visualizer != null) {
+            m_visualizer.setPlugin(plugin);
+        }
+    }
 }

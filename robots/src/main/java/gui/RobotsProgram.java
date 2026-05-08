@@ -14,47 +14,42 @@ import java.util.List;
 import javax.swing.JOptionPane;
 
 
-public class RobotsProgram
-{
+public class RobotsProgram {
     public static void main(String[] args) {
-      try {
-        UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");
-//        UIManager.setLookAndFeel("javax.swing.plaf.metal.MetalLookAndFeel");
-//        UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-//        UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
-      
-      // Определяем язык системы 
-      Locale systemLocale = Locale.getDefault();
-      
-      // Загружаем переводы для языка системы
-      ResourceBundle bundle = ResourceBundle.getBundle("messages", systemLocale);
-      
-      // Переводим стандартные компоненты Swing
-      Components.translateComponents(bundle);
+        try {
+            // Установка современного внешнего вида
+            UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        // 1. Предварительная настройка локали
+        Locale systemLocale = Locale.getDefault();
+        ResourceBundle bundle = ResourceBundle.getBundle("messages", systemLocale);
+        Components.translateComponents(bundle);
 
         SwingUtilities.invokeLater(() -> {
             MainApplicationFrame frame = new MainApplicationFrame(bundle);
-            // Прежде чем показывать — проверим, есть ли сохранённые профили
-            List<String> profiles = ProfileManager.listProfiles(); // получаем список сохранённых профилей
+
+            // Переменная для хранения профиля (пока не применяем)
+            Profile profileToRestore = null;
+
+            // 2. Логика выбора профиля
+            List<String> profiles = ProfileManager.listProfiles();
             if (!profiles.isEmpty()) {
-                // Сначала спросим восстанавливать ли профиль (в текущей локали bundle)
                 int ask = JOptionPane.showConfirmDialog(
                         frame,
-                        bundle.getString("dialog.profile.restore.exists"), // например: "Найден сохранённый профиль. Восстановить?"
+                        bundle.getString("dialog.profile.restore.exists"),
                         bundle.getString("dialog.confirm.title"),
                         JOptionPane.YES_NO_OPTION,
                         JOptionPane.QUESTION_MESSAGE
                 );
+
                 if (ask == JOptionPane.YES_OPTION) {
-                    // Если несколько — предложим выбор
-                    String chosen;
+                    String chosen = null;
                     if (profiles.size() == 1) {
                         chosen = profiles.get(0);
                     } else {
-                        // подпись в локали: bundle.getString("dialog.profile.choose")
                         Object sel = JOptionPane.showInputDialog(
                                 frame,
                                 bundle.getString("dialog.profile.choose"),
@@ -66,12 +61,11 @@ public class RobotsProgram
                         );
                         chosen = (sel instanceof String) ? (String) sel : null;
                     }
+
                     if (chosen != null) {
                         try {
-                            Profile p = ProfileManager.loadProfile(chosen);
-                            // восстановим профиль (внутри него есть локаль и состояния окон)
-                            frame.restoreProfile(p);
-                            Logger.debug(bundle.getString("log.message.profileRestored").replace("{0}", chosen));
+                            // Загружаем объект из файла, но не вызываем restoreProfile сразу
+                            profileToRestore = ProfileManager.loadProfile(chosen);
                         } catch (Exception ex) {
                             Logger.error("Failed to load profile: " + ex.getMessage());
                         }
@@ -79,8 +73,17 @@ public class RobotsProgram
                 }
             }
 
+            // 3. СНАЧАЛА делаем окно видимым и активным
             frame.pack();
             frame.setVisible(true);
             frame.setExtendedState(Frame.MAXIMIZED_BOTH);
+
+            // 4. ТЕПЕРЬ применяем настройки из профиля
+            // Теперь, когда окно на экране, Swing корректно отработает сворачивание (setIcon)
+            if (profileToRestore != null) {
+                frame.restoreProfile(profileToRestore);
+                Logger.debug(bundle.getString("log.message.profileRestored"));
+            }
         });
-    }}
+    }
+}
