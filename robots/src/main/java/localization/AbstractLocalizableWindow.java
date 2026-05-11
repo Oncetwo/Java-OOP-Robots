@@ -17,6 +17,17 @@ public abstract class AbstractLocalizableWindow extends JInternalFrame implement
         super(bundle.getString(titleKey), true, true, true, true);
         this.bundle = bundle;
         this.titleKey = titleKey;
+        
+        // запрещаем автоматическое закрытие 
+        setDefaultCloseOperation(JInternalFrame.DO_NOTHING_ON_CLOSE);
+
+        // добавляем слушателя, который перехватит нажатие на крестик
+        addInternalFrameListener(new javax.swing.event.InternalFrameAdapter() {
+            @Override
+            public void internalFrameClosing(javax.swing.event.InternalFrameEvent e) {
+                confirmClose(); // Вызываем метод с вопросом
+            }
+        });
     }
 
     

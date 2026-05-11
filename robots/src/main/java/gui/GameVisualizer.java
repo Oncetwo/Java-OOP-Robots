@@ -1,6 +1,7 @@
 package gui;
 
 import api.GameContext;
+import api.GameMap;
 import api.IRobotPlugin;
 import api.DefaultRobot;
 
@@ -8,88 +9,186 @@ import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.AffineTransform;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
+import javax.swing.AbstractAction;
+import javax.swing.JComponent;
 import javax.swing.JPanel;
+import javax.swing.KeyStroke;
 
 public class GameVisualizer extends JPanel {
-    private final Timer m_timer = initTimer();
+    private final Timer m_timer = initTimer(); // основной таймер для генерации событий
 
-    private static Timer initTimer() {
-        return new Timer("events generator", true);
+    private static Timer initTimer() { // метод для создания таймер демона
+        return new Timer("events generator", true); // имя таймера, флаг который говорит, что таймер демон
     }
 
-    // Храним активный плагин робота (по умолчанию загружаем нашего стандартного)
-    private IRobotPlugin currentRobot = new DefaultRobot();
+    private IRobotPlugin currentRobot = new DefaultRobot(); // поле для хранение текущего активного робота (стандартный по умолчанию)
+    private Point mouseTarget = new Point(150, 100); // координаты точки куда должен ехать робот
 
-    // Координаты цели (мышки)
-    private Point mouseTarget = new Point(150, 100);
+    // Хранилище для кодов зажатых клавиш (Set гарантирует отсутствие дублей)
+    private final Set<Integer> pressedKeys = new HashSet<>();
+    
+    private GameMap currentMap = new api.maps.EmptyMap(); // поле карты - по умолчанию - пустая карта
+    
+    private static final int VIRTUAL_WIDTH = 800; // константы, которые будут определять размер виртуального мира
+    private static final int VIRTUAL_HEIGHT = 800;
 
     public GameVisualizer() {
-        m_timer.schedule(new TimerTask() { //инициирует перерисовку
+        // Таймер перерисовки (60 FPS примерно)
+        m_timer.schedule(new TimerTask() { // планируем выполнение задачи (создаем объект задачи)
             @Override
             public void run() { EventQueue.invokeLater(GameVisualizer.this::repaint); }
-        }, 0, 50);
+        }, 0, 16); // класс свинг управляющий потоками, берем текущий объект и просим перерисовать компонент)
 
-        m_timer.schedule(new TimerTask() { //каждый 10мс вызывать обновление логики движения
+        // Таймер обновления логики каждые 10 мс вызываем расчет координат
+        m_timer.schedule(new TimerTask() {
             @Override
             public void run() { onModelUpdateEvent(); }
         }, 0, 10);
 
-        addMouseListener(new MouseAdapter() { //следит за мышкой
+        // слушатель мыши для DefaultRobot
+        addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                mouseTarget = e.getPoint();
-                repaint(); // Перерисовываем сразу после клика
+                // теперь мы не берем координаты напрямую, а пересчитываем их через метод-переводчик
+                onMouseClick(e.getPoint()); 
+                repaint(); // просим перерисовать экран
             }
         });
 
-        setDoubleBuffered(true);
+        setupKeyBindings(); // настраиваем урпавление клавиатурой   
+        setDoubleBuffered(true); // двойная буферизация (чтобы картинка не мерцала)
+        setFocusable(true); // Чтобы компонент мог принимать события клавиш
     }
 
-    // Метод для загрузки нового робота извне
-    public void setPlugin(IRobotPlugin plugin) {
+    /**
+     * Настройка Key Bindings
+     * Мы связываем физическую клавишу с логическим действием (нажата/отпущена)
+     */
+    private void setupKeyBindings() { // список клавиш, которые будем слушать
+        int[] keys = {KeyEvent.VK_W, KeyEvent.VK_A, KeyEvent.VK_S, KeyEvent.VK_D, 
+                      KeyEvent.VK_UP, KeyEvent.VK_LEFT, KeyEvent.VK_DOWN, KeyEvent.VK_RIGHT};
+
+        for (int keyCode : keys) {
+            // Действие при нажатии (таблица (карта-ввода) что нажал пользователь - название действия)
+            getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(keyCode, 0, false), "press" + keyCode);
+            getActionMap().put("press" + keyCode, new AbstractAction() { // карта действий (название действия - что делать))
+                @Override // AbstractAction - класс для создания действий
+                public void actionPerformed(ActionEvent e) {
+                    pressedKeys.add(keyCode); // (метод вызовется, когда действие сработает)
+                }
+            });
+
+            // Действие при отпускании
+            getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(keyCode, 0, true), "release" + keyCode);
+            getActionMap().put("release" + keyCode, new AbstractAction() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    pressedKeys.remove(keyCode);
+                }
+            });
+        }
+    }
+
+    public void setPlugin(IRobotPlugin plugin) { // установка нового плагина
         if (plugin != null) {
             this.currentRobot = plugin;
         }
     }
 
-    // Обновление логики (Модели)
-    protected void onModelUpdateEvent() {
-        if (currentRobot == null || currentRobot.getBehavior() == null) return;
+    protected void onModelUpdateEvent() { // обновление состояния робота
+        if (currentRobot == null || currentRobot.getBehavior() == null) {
+        	return;
+        }
 
-        // Создаем контекст: "фотографию" текущего состояния игры
+        // Создаем контекст, в который теперь реально передаем зажатые клавиши
         GameContext context = new GameContext() {
-            @Override public Point getMouseTarget() { return mouseTarget; }
-            @Override public Set<Integer> getPressedKeys() { return Collections.emptySet(); } // Заглушка для ручного управления (п.5)
-            @Override public int getFieldWidth() { return getWidth(); }
-            @Override public int getFieldHeight() { return getHeight(); }
-            @Override public double getDeltaTime() { return 10.0; } // 10 мс из таймера
+            @Override public Point getMouseTarget() { return mouseTarget; } // координаты последнего клика мышки
+            
+            // Отправляем текущее состояние клавиатуры плагину (копия множества зажатых клавиш)
+            @Override public Set<Integer> getPressedKeys() { return new HashSet<>(pressedKeys); } 
+            
+            // сообщаем роботу ширину и высоту именно виртуального мира, а не окна в пикселях
+            @Override public int getFieldWidth() { return VIRTUAL_WIDTH; } 
+            @Override public int getFieldHeight() { return VIRTUAL_HEIGHT; }
+            
+            @Override public double getDeltaTime() { return 10.0; } // время, прошедшее с последнего обновления
+            
+            @Override 
+            public java.util.List<java.awt.Shape> getObstacles() { 
+                // Передаем список стен из текущей карты в контекст робота
+                return currentMap != null ? currentMap.getObstacles() : java.util.Collections.emptyList(); 
+            }
         };
 
-        // Отдаем контекст "мозгу" робота
         currentRobot.getBehavior().update(context);
     }
+    
+    // добавлен метод для пересчета экранных координат клика в виртуальные координаты мира
+    private void onMouseClick(Point screenPoint) {
+        double scale = Math.min((double) getWidth() / VIRTUAL_WIDTH, (double) getHeight() / VIRTUAL_HEIGHT);
+        double offsetX = (getWidth() - VIRTUAL_WIDTH * scale) / 2;
+        double offsetY = (getHeight() - VIRTUAL_HEIGHT * scale) / 2;
 
-    // Обновление графики (Представления)
+        // Переводим пиксели в метры виртуального мира
+        int virtualX = (int) ((screenPoint.x - offsetX) / scale);
+        int virtualY = (int) ((screenPoint.y - offsetY) / scale);
+
+        // Обновляем цель (она теперь в виртуальных координатах)
+        this.mouseTarget = new Point(virtualX, virtualY);
+    }
+
+    public void setMap(GameMap map) { // метод для смены карты извне
+        this.currentMap = map;
+        // Сброс позиции робота в начальную точку при смене карты 
+        if (currentRobot != null && currentRobot.getBehavior() != null) {
+            // левый нижний угол в виртуальном мире:
+            double spawnX = 50;
+            double spawnY = VIRTUAL_HEIGHT - 50; 
+            
+            // Передаем приказ роботу через интерфейс
+            currentRobot.getBehavior().setPosition(spawnX, spawnY);
+        }
+        repaint();
+    }
+
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         Graphics2D g2d = (Graphics2D) g;
 
-        // 1. Сбрасываем трансформацию перед отрисовкой карты и цели
-        g2d.setTransform(new AffineTransform());
+        // Вычисляем масштаб (выбираем минимальный, чтобы всё влезло и не исказилось)
+        double scaleX = (double) getWidth() / VIRTUAL_WIDTH;
+        double scaleY = (double) getHeight() / VIRTUAL_HEIGHT;
+        double scale = Math.min(scaleX, scaleY);
 
-        // 2. Рисуем цель (мышь)
+        // вычисляем отступы, чтобы мир всегда был по центру окна
+        double offsetX = (getWidth() - VIRTUAL_WIDTH * scale) / 2;
+        double offsetY = (getHeight() - VIRTUAL_HEIGHT * scale) / 2;
+
+        // запоминаем старую трансформацию и ставим новую
+        AffineTransform oldTransform = g2d.getTransform(); // AffineTransform инструмент, который пересчитывает координаты
+        
+        g2d.translate(offsetX, offsetY); // Сдвигаем в центр
+        g2d.scale(scale, scale); // Масштабируем
+
+        // дальше все рисуем в виртуальных координатах
+        
+        if (currentMap != null) {
+            currentMap.draw(g2d); // Карта рисуется в масштабе
+        }
+        
         g2d.setColor(Color.GREEN);
         g2d.fillOval(mouseTarget.x - 2, mouseTarget.y - 2, 5, 5);
-        g2d.setColor(Color.BLACK);
-        g2d.drawOval(mouseTarget.x - 2, mouseTarget.y - 2, 5, 5);
-
-        // 3. отдаём работу визуализатору
-        if (currentRobot != null && currentRobot.getVisualizer() != null && currentRobot.getBehavior() != null) {
+        
+        if (currentRobot != null) { // отрисовка робота
             currentRobot.getVisualizer().draw(g2d, currentRobot.getBehavior());
         }
+
+        // Возвращаем всё как было (важно для корректной работы Swing в будущем)
+        g2d.setTransform(oldTransform);
     }
 }

@@ -172,7 +172,8 @@ public class MainApplicationFrame extends JFrame // главное окно пр
         menuBar.add(createLanguageMenu());
         menuBar.add(createLookAndFeelMenu());
         menuBar.add(createTestMenu());
-        menuBar.add(createPluginMenu());
+        menuBar.add(createMapMenu(bundle)); 
+        menuBar.add(createPluginMenu(bundle));
 
         return menuBar;
     }
@@ -351,15 +352,15 @@ public class MainApplicationFrame extends JFrame // главное окно пр
         }
     }
 
-    private JMenu createPluginMenu() {
-        JMenu pluginMenu = new JMenu("Плагины");
+    private JMenu createPluginMenu(ResourceBundle bundle) {
+        JMenu pluginMenu = new JMenu(bundle.getString("menu.plugins"));
         pluginMenu.setMnemonic(KeyEvent.VK_P);
 
-        JMenuItem loadItem = new JMenuItem("Загрузить робота (JAR)...");
+        JMenuItem loadItem = new JMenuItem(bundle.getString("menu.plugins.load"));
         loadItem.addActionListener((ActionEvent e) -> {
             // Открываем диалоговое окно выбора файла
             JFileChooser fileChooser = new JFileChooser();
-            fileChooser.setDialogTitle("Выберите JAR файл плагина");
+            fileChooser.setDialogTitle(bundle.getString("dialog.plugin.chooser.title"));
             fileChooser.setFileFilter(new FileNameExtensionFilter("JAR Files (*.jar)", "jar"));
 
             // Если пользователь выбрал файл и нажал "ОК"
@@ -372,13 +373,13 @@ public class MainApplicationFrame extends JFrame // главное окно пр
                     // Устанавливаем плагин в игровое окно (если оно открыто)
                     if (gameWindow != null) {
                         gameWindow.setRobotPlugin(plugin);
-                        Logger.debug("Плагин успешно загружен: " + plugin.getName());
+                        Logger.debug(bundle.getString("log.plugin.loaded") + " " + plugin.getName());
                     }
                 } catch (Exception ex) {
-                    Logger.error("Ошибка загрузки плагина: " + ex.getMessage());
-                    JOptionPane.showMessageDialog(this,
-                            "Не удалось загрузить плагин:\n" + ex.getMessage(),
-                            "Ошибка загрузки",
+                	Logger.error(bundle.getString("log.plugin.error") + " " + ex.getMessage());
+                    JOptionPane.showMessageDialog(this, // создание стандартного окна с ошибкой
+                            bundle.getString("dialog.plugin.error.message") + "\n" + ex.getMessage(),
+                            bundle.getString("dialog.plugin.error.title"),
                             JOptionPane.ERROR_MESSAGE);
                 }
             }
@@ -386,5 +387,41 @@ public class MainApplicationFrame extends JFrame // главное окно пр
 
         pluginMenu.add(loadItem);
         return pluginMenu;
+    }
+    
+    
+    // Создание меню выбора карт
+    private JMenu createMapMenu(ResourceBundle bundle) {
+        JMenu mapMenu = new JMenu(bundle.getString("menu.maps"));
+        mapMenu.setMnemonic(KeyEvent.VK_M);
+
+        // Используем ButtonGroup, чтобы одновременно могла быть выбрана только одна карта
+        ButtonGroup group = new ButtonGroup();
+
+        // Создаем массив наших карт 
+        api.GameMap[] maps = {
+            new api.maps.EmptyMap(),
+            new api.maps.CrossMap(),
+            new api.maps.ArenaMap(),
+            new api.maps.LabyrinthMap()
+        };
+
+        for (api.GameMap map : maps) {
+            JRadioButtonMenuItem menuItem = new JRadioButtonMenuItem(map.getName()); // пункт меню
+            menuItem.addActionListener((event) -> {
+                // При клике передаем выбранную карту в визуализатор
+                gameWindow.getVisualizer().setMap(map);
+            });
+            
+            group.add(menuItem);
+            mapMenu.add(menuItem);
+            
+            // По умолчанию выбираем первую карту (EmptyMap)
+            if (map instanceof api.maps.EmptyMap) {
+                menuItem.setSelected(true);
+            }
+        }
+
+        return mapMenu;
     }
 }

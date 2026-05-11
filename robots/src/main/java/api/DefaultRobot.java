@@ -9,8 +9,8 @@ public class DefaultRobot implements IRobotPlugin {
 
     // 1. Внутренний класс логики (Модель)
     private class DefaultBehavior implements RobotBehavior {
-        private double x = 100;
-        private double y = 100;
+        private double x = 50;
+        private double y = 750;
         private double direction = 0;
 
         private static final double MAX_VELOCITY = 0.1;
@@ -83,6 +83,12 @@ public class DefaultRobot implements IRobotPlugin {
         @Override public double getX() { return x; }
         @Override public double getY() { return y; }
         @Override public double getDirection() { return direction; }
+        
+        @Override
+        public void setPosition(double x, double y) {
+            this.x = x;
+            this.y = y;
+        }
     }
 
     // 2. Внутренний класс отрисовки (Представление)
@@ -92,20 +98,24 @@ public class DefaultRobot implements IRobotPlugin {
             int robotCenterX = (int)(robot.getX() + 0.5);
             int robotCenterY = (int)(robot.getY() + 0.5);
 
-            AffineTransform t = AffineTransform.getRotateInstance(robot.getDirection(), robotCenterX, robotCenterY);
-            g.setTransform(t);
+            AffineTransform old = g.getTransform(); // запоминаем текущий масштаб
+            
+            //  поворачиваем холст, не стирая масштаб
+            g.rotate(robot.getDirection(), robotCenterX, robotCenterY);
 
             // Рисуем корпус
             g.setColor(Color.MAGENTA);
-            g.fillOval(robotCenterX - 15, robotCenterY - 5, 30, 10);
+            g.fillOval(robotCenterX - 35, robotCenterY - 10, 70, 25);
             g.setColor(Color.BLACK);
-            g.drawOval(robotCenterX - 15, robotCenterY - 5, 30, 10);
+            g.drawOval(robotCenterX - 35, robotCenterY - 10, 70, 25);
 
             // Рисуем "нос" (направление)
             g.setColor(Color.WHITE);
             g.fillOval(robotCenterX + 10 - 2, robotCenterY - 2, 5, 5);
             g.setColor(Color.BLACK);
             g.drawOval(robotCenterX + 10 - 2, robotCenterY - 2, 5, 5);
+            
+            g.setTransform(old); // возвращаем камеру обратно
         }
     }
 
