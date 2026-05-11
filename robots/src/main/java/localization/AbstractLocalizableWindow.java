@@ -3,7 +3,6 @@ package localization;
 
 import javax.swing.JInternalFrame;
 import javax.swing.JOptionPane;
-
 import java.util.ResourceBundle;
 
 // Базовый класс для всех локализуемых окон приложения

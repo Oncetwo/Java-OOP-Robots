@@ -4,13 +4,10 @@ import java.awt.*;
 import java.awt.Frame;
 import java.util.Locale;
 import java.util.ResourceBundle;
-
 import log.Logger;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
-
 import java.util.List;
-
 import javax.swing.JOptionPane;
 
 
@@ -73,16 +70,27 @@ public class RobotsProgram {
                 }
             }
 
-            // 3. СНАЧАЛА делаем окно видимым и активным
             frame.pack();
             frame.setVisible(true);
-            frame.setExtendedState(Frame.MAXIMIZED_BOTH);
+            frame.setExtendedState(Frame.MAXIMIZED_BOTH); // Теперь окно всегда будет большим при старте
 
             // 4. ТЕПЕРЬ применяем настройки из профиля
-            // Теперь, когда окно на экране, Swing корректно отработает сворачивание (setIcon)
             if (profileToRestore != null) {
+                // Профиль УЖЕ загружен, просто применяем его:
                 frame.restoreProfile(profileToRestore);
-                Logger.debug(bundle.getString("log.message.profileRestored"));
+
+                // РЕШЕНИЕ ПРОБЛЕМЫ С ЛОКАЛЬЮ И {0}:
+                ResourceBundle currentBundle = frame.getBundle();
+                String pattern = currentBundle.getString("log.message.profileRestored");
+
+                // Используем profileToRestore.getName(), чтобы получить строку с именем!
+                String finalMessage = java.text.MessageFormat.format(pattern, profileToRestore.getName());
+
+                Logger.debug(finalMessage);
+
+            } else {
+                // Если профиля нет (первый запуск), только тогда разворачиваем на весь экран
+                frame.setExtendedState(java.awt.Frame.MAXIMIZED_BOTH);
             }
         });
     }

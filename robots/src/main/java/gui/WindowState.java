@@ -6,11 +6,12 @@ public class WindowState implements Serializable {
     private static final long serialVersionUID = 1L;
 
     // id — программный идентификатор окна, например "log" или "game"
-    private final String id;
-    private final int x, y, width, height;
-    private final boolean visible;
-    private final boolean icon; // свернуто (iconified)
-    private final boolean maximized;
+    private String id;
+    private int x, y, width, height;
+    private boolean visible;
+    private boolean icon; // свернуто (iconified)
+    private boolean maximized;
+    public WindowState() {};
 
     public WindowState(String id, int x, int y, int width, int height,
                        boolean visible, boolean icon, boolean maximized) {
@@ -27,4 +28,12 @@ public class WindowState implements Serializable {
     public boolean isVisible() { return visible; }
     public boolean isIcon() { return icon; }
     public boolean isMaximized() { return maximized; }
+    public void setId(String id) { this.id = id; }
+    public void setX(int x) { this.x = x; }
+    public void setY(int y) { this.y = y; }
+    public void setWidth(int width) { this.width = width; }
+    public void setHeight(int height) { this.height = height; }
+    public void setVisible(boolean visible) { this.visible = visible; }
+    public void setIcon(boolean icon) { this.icon = icon; }
+    public void setMaximized(boolean maximized) { this.maximized = maximized; }
 }

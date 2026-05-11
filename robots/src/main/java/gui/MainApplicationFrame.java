@@ -5,7 +5,6 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.event.ActionEvent;
 import java.io.File;
 import java.awt.Dimension;
-
 import java.awt.Toolkit;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
@@ -27,8 +26,6 @@ import javax.swing.JRadioButtonMenuItem;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
-import javax.swing.event.InternalFrameAdapter;
-import javax.swing.event.InternalFrameEvent;
 import api.IRobotPlugin;
 
 import java.awt.event.WindowAdapter;
@@ -423,5 +420,9 @@ public class MainApplicationFrame extends JFrame // главное окно пр
         }
 
         return mapMenu;
+    }
+
+    public ResourceBundle getBundle() {
+        return this.bundle;
     }
 }

@@ -4,11 +4,9 @@ import api.GameContext;
 import api.GameMap;
 import api.IRobotPlugin;
 import api.DefaultRobot;
-
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.AffineTransform;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.Timer;
@@ -26,7 +24,7 @@ public class GameVisualizer extends JPanel {
     }
 
     private IRobotPlugin currentRobot = new DefaultRobot(); // поле для хранение текущего активного робота (стандартный по умолчанию)
-    private Point mouseTarget = new Point(150, 100); // координаты точки куда должен ехать робот
+    private Point mouseTarget = null; // по умолчанию пусть стоит
 
     // Хранилище для кодов зажатых клавиш (Set гарантирует отсутствие дублей)
     private final Set<Integer> pressedKeys = new HashSet<>();
@@ -180,9 +178,11 @@ public class GameVisualizer extends JPanel {
         if (currentMap != null) {
             currentMap.draw(g2d); // Карта рисуется в масштабе
         }
-        
-        g2d.setColor(Color.GREEN);
-        g2d.fillOval(mouseTarget.x - 2, mouseTarget.y - 2, 5, 5);
+
+        if (mouseTarget != null) {
+            g2d.setColor(Color.GREEN);
+            g2d.fillOval(mouseTarget.x - 2, mouseTarget.y - 2, 5, 5);
+        }
         
         if (currentRobot != null) { // отрисовка робота
             currentRobot.getVisualizer().draw(g2d, currentRobot.getBehavior());

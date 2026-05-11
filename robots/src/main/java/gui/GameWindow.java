@@ -1,17 +1,9 @@
 package gui;
 
 import java.awt.BorderLayout;
-
-
 import java.util.ResourceBundle;
-import java.util.Locale;
-
-import javax.swing.JInternalFrame;
 import javax.swing.JPanel;
-
 import localization.AbstractLocalizableWindow;
-import localization.Localizable;
-
 
 public class GameWindow extends AbstractLocalizableWindow
 {

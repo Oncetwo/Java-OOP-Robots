@@ -1,22 +1,17 @@
 package gui;
 
 import java.awt.BorderLayout;
-
 import java.awt.EventQueue;
 import javax.swing.JTextArea;
 import java.util.ResourceBundle;
 import javax.swing.JScrollPane;
-
-import javax.swing.JInternalFrame;
 import javax.swing.JPanel;
 import javax.swing.event.InternalFrameAdapter;
 import javax.swing.event.InternalFrameEvent;
-
 import log.LogChangeListener;
 import log.LogEntry;
 import log.LogWindowSource;
 import localization.AbstractLocalizableWindow;
-import localization.Localizable;
 
 public class LogWindow extends AbstractLocalizableWindow implements LogChangeListener
 {
