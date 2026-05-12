@@ -21,4 +21,5 @@ public interface GameContext {
     
     List<Shape> getObstacles(); // получение списка препятсвий
 
+    Shape getFinishZone();
 }

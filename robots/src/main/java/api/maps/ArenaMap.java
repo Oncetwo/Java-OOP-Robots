@@ -2,6 +2,7 @@ package api.maps;
 
 import api.GameMap;
 import java.awt.*;
+import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -41,14 +42,18 @@ public class ArenaMap implements GameMap {
         return obstacles;
     }
 
+    private final Shape finishZone = new Rectangle2D.Double(375, 375, 50, 50);
+
+    @Override
+    public Shape getFinishZone() { return finishZone; }
+
     @Override
     public void draw(Graphics2D g) {
-        g.setColor(Color.RED);
-        
-        for (Shape wall : obstacles) {
-            g.fill(wall); // Заливка
-            
-        }
+        g.setColor(Color.BLACK);
+        for (Shape s : getObstacles()) g.fill(s);
 
+        // Золотой квадрат в центре
+        g.setColor(new Color(255, 215, 0));
+        g.fill(finishZone);
     }
 }

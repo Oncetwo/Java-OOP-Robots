@@ -13,7 +13,7 @@ public class DefaultRobot implements IRobotPlugin {
         private double y = 750;
         private double direction = 0;
 
-        private static final double MAX_VELOCITY = 0.1;
+        private static final double MAX_VELOCITY = 0.15;
         private static final double MAX_ANGULAR_VELOCITY = 0.001;
 
         @Override

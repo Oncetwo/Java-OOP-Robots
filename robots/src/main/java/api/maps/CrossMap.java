@@ -2,6 +2,7 @@ package api.maps;
 
 import api.GameMap;
 import java.awt.*;
+import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,13 +36,20 @@ public class CrossMap implements GameMap {
         return obstacles;
     }
 
+    // Финиш в свободном углу (справа вверху)
+    private final Shape finishZone = new Rectangle2D.Double(730, 20, 50, 50);
+
+    @Override
+    public Shape getFinishZone() { return finishZone; }
+
     @Override
     public void draw(Graphics2D g) {
-        g.setColor(Color.RED);
-        
-        for (Shape wall : obstacles) {
-            g.fill(wall);
-            
-        }
+        // Отрисовка ваших препятствий (rect1, rect2)
+        g.setColor(Color.BLACK);
+        for (Shape s : getObstacles()) g.fill(s);
+
+        // Отрисовка финиша
+        g.setColor(new Color(255, 215, 0));
+        g.fill(finishZone);
     }
 }

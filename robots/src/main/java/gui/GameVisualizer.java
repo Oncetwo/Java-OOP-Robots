@@ -120,6 +120,10 @@ public class GameVisualizer extends JPanel {
                 // Передаем список стен из текущей карты в контекст робота
                 return currentMap != null ? currentMap.getObstacles() : java.util.Collections.emptyList(); 
             }
+            @Override
+            public java.awt.Shape getFinishZone() {
+                return currentMap != null ? currentMap.getFinishZone() : null;
+            }
         };
 
         currentRobot.getBehavior().update(context);

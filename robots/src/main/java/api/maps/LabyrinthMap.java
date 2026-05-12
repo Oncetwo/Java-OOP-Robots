@@ -2,6 +2,7 @@ package api.maps;
 
 import api.GameMap;
 import java.awt.*;
+import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -48,13 +49,18 @@ public class LabyrinthMap implements GameMap {
         return obstacles;
     }
 
+    private final Shape finishZone = new Rectangle2D.Double(700, 720, 60, 60);
+
+    @Override
+    public Shape getFinishZone() { return finishZone; }
+
     @Override
     public void draw(Graphics2D g) {
-        g.setColor(Color.RED); // Устанавливаем красный цвет для стен
-        
-        for (Shape wall : obstacles) {
-            g.fill(wall); // Заливка стены
-            
-        }
+        g.setColor(Color.BLACK);
+        for (Shape s : getObstacles()) g.fill(s);
+
+        // Финишная черта
+        g.setColor(new Color(255, 215, 0));
+        g.fill(finishZone);
     }
 }

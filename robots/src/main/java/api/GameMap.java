@@ -15,4 +15,8 @@ public interface GameMap {
     List<Shape> getObstacles(); // Получить список всех препятствий на карте (нужно для просчета столкновений)
     
     void draw(Graphics2D g); // Отрисовать карту (стены) на холсте
+
+    default Shape getFinishZone() {
+        return null;
+    }
 }

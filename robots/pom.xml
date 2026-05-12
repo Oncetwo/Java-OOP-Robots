@@ -33,12 +33,9 @@
 	    <resources>
 	        <resource>
 	            <directory>src/resources</directory>
-	            <includes>
-	                <include>**/*.properties</include>
-	            </includes>
 	        </resource>
 	    </resources>
-        
+
         <plugins>
             <!-- Плагин для создания JAR-файла -->
             <plugin>

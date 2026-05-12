@@ -82,6 +82,20 @@ public class ManualRobot implements IRobotPlugin {
                 // Если робот уехал ниже нижнего края экрана, ставим его на нижнюю границу
                 y = 800;
             }
+
+            java.awt.Shape finish = context.getFinishZone();
+
+            if (finish != null) {
+                java.awt.geom.Rectangle2D robotHitbox = new java.awt.geom.Rectangle2D.Double(x - 10, y - 10, 20, 20);
+                if (finish.intersects(robotHitbox)) {
+                    // Ставим те же координаты, которые у вас прописаны при создании робота
+                    this.x = 50.0;
+                    this.y = 750.0;
+
+                    // Сбрасываем угол поворота, чтобы робот смотрел прямо
+                    this.direction = 0;
+                }
+            }
         }
 
         // метод для проверки пересечения хитбокса робота с препятствиями карты
