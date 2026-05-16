@@ -88,7 +88,7 @@ public class ManualRobot implements IRobotPlugin {
             if (finish != null) {
                 java.awt.geom.Rectangle2D robotHitbox = new java.awt.geom.Rectangle2D.Double(x - 10, y - 10, 20, 20);
                 if (finish.intersects(robotHitbox)) {
-                    // Ставим те же координаты, которые у вас прописаны при создании робота
+                    // Ставим те же координаты, которые прописаны при создании робота
                     this.x = 50.0;
                     this.y = 750.0;
 

@@ -143,8 +143,19 @@ public class MainApplicationFrame extends JFrame // главное окно пр
             System.exit(0);
         }
     }
-    
-   
+
+    private java.awt.Rectangle getRealWindowBounds(javax.swing.JInternalFrame window) {
+        // Если окно развернуто или свернуто в значок, берем его "нормальные" сохраненные границы
+        if (window.isMaximum() || window.isIcon()) {
+            java.awt.Rectangle normalBounds = window.getNormalBounds();
+            if (normalBounds != null) {
+                return normalBounds;
+            }
+        }
+        // Иначе возвращаем его текущие границы
+        return window.getBounds();
+    }
+
     private void switchLanguage(Locale newLocale) { // Метод для переключения языка
        
         ResourceBundle newBundle = ResourceBundle.getBundle("messages", newLocale); // Загружаем новый bundle
@@ -276,17 +287,17 @@ public class MainApplicationFrame extends JFrame // главное окно пр
         }
     }
 
-    // Сохраняет текущий профиль
     public void saveCurrentProfile() {
-        try { // создаём имя профиля по времени
+        try {
             String profileName = "profile_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
             List<WindowState> states = new ArrayList<>();
 
             if (logWindow != null) {
+                java.awt.Rectangle bounds = getRealWindowBounds(logWindow);
                 states.add(new WindowState(
                         "log",
-                        logWindow.getX(), logWindow.getY(),
-                        logWindow.getWidth(), logWindow.getHeight(),
+                        bounds.x, bounds.y,
+                        bounds.width, bounds.height,
                         logWindow.isVisible(),
                         logWindow.isIcon(),
                         logWindow.isMaximum()
@@ -295,17 +306,18 @@ public class MainApplicationFrame extends JFrame // главное окно пр
 
             // игра
             if (gameWindow != null) {
+                java.awt.Rectangle bounds = getRealWindowBounds(gameWindow);
                 states.add(new WindowState(
                         "game",
-                        gameWindow.getX(), gameWindow.getY(),
-                        gameWindow.getWidth(), gameWindow.getHeight(),
+                        bounds.x, bounds.y,
+                        bounds.width, bounds.height,
                         gameWindow.isVisible(),
                         gameWindow.isIcon(),
                         gameWindow.isMaximum()
                 ));
             }
 
-            Profile p = new Profile(profileName, currentLocale.getLanguage(), states); // создали профиль
+            Profile p = new Profile(profileName, currentLocale.getLanguage(), states);
             ProfileManager.saveProfile(p);
             Logger.debug(bundle.getString("log.message.profileSaved").replace("{0}", profileName));
         } catch (Exception ex) {
@@ -321,7 +333,7 @@ public class MainApplicationFrame extends JFrame // главное окно пр
         // Сначала восстановим локаль, если она отличается
         try {
             if (profile.getLocaleLanguage() != null && !profile.getLocaleLanguage().equals(currentLocale.getLanguage())) {
-                switchLanguage(Locale.of(profile.getLocaleLanguage())); // switchLanguage приватный — доступен внутри класса
+                switchLanguage(Locale.of(profile.getLocaleLanguage()));
             }
         } catch (Exception e) {
             //ignooooreeee
@@ -329,19 +341,19 @@ public class MainApplicationFrame extends JFrame // главное окно пр
 
         for (WindowState ws : profile.getWindows()) {
             try {
-                if ("log".equals(ws.getId()) && logWindow != null) { // восстанавливаем профиль
-                    logWindow.setLocation(ws.getX(), ws.getY());
-                    logWindow.setSize(ws.getWidth(), ws.getHeight());
+                if ("log".equals(ws.getId()) && logWindow != null) {
+                    // Восстанавливаем строго в этом порядке!
+                    logWindow.setBounds(ws.getX(), ws.getY(), ws.getWidth(), ws.getHeight());
                     logWindow.setVisible(ws.isVisible());
-                    logWindow.setVisible(true);
                     try { logWindow.setMaximum(ws.isMaximized()); } catch (PropertyVetoException ex) {}
                     try { logWindow.setIcon(ws.isIcon()); } catch (PropertyVetoException ex) {}
+
                 } else if ("game".equals(ws.getId()) && gameWindow != null) {
-                    gameWindow.setLocation(ws.getX(), ws.getY());
-                    gameWindow.setSize(ws.getWidth(), ws.getHeight());
+                    // Восстанавливаем строго в этом порядке!
+                    gameWindow.setBounds(ws.getX(), ws.getY(), ws.getWidth(), ws.getHeight());
                     gameWindow.setVisible(ws.isVisible());
-                    try { gameWindow.setIcon(ws.isIcon()); } catch (PropertyVetoException ex) {}
                     try { gameWindow.setMaximum(ws.isMaximized()); } catch (PropertyVetoException ex) {}
+                    try { gameWindow.setIcon(ws.isIcon()); } catch (PropertyVetoException ex) {}
                 }
             } catch (Exception ex) {
                 // не прерываем восстановление при ошибке частичного окна

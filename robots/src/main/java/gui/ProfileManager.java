@@ -36,20 +36,24 @@ public class ProfileManager {
         String fname = profile.getName() + ".xml";
         File f = new File(DIR, fname);
 
-        // создаём поток записи объекта в XML-файл
+        // Внутри saveProfile(Profile profile):
         try (XMLEncoder encoder = new XMLEncoder(new BufferedOutputStream(new FileOutputStream(f)))) {
-            encoder.writeObject(profile); // сохранили объект profile в файл
+            encoder.writeObject(profile);
+            encoder.flush(); // Принудительно выталкиваем данные в файл
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
     public static Profile loadProfile(String name) throws IOException {
         File f = new File(DIR, name + ".xml");
 
-        // создаём поток для чтения объекта из XML-файла
+        // Внутри loadProfile(String name):
         try (XMLDecoder decoder = new XMLDecoder(new BufferedInputStream(new FileInputStream(f)))) {
-            // читаем объект, преобразуя его в тип Profile
-            Object o = decoder.readObject();
-            return (Profile) o;
+            return (Profile) decoder.readObject();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
         }
     }
 }

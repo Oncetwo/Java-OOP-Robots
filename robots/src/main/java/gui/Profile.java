@@ -16,10 +16,18 @@ public class Profile implements Serializable { // позволяет сохра�
         this.localeLanguage = localeLanguage;
         this.windows = windows;
     }
+    public void setWindows(java.util.ArrayList<WindowState> windows) {
+        this.windows = windows;
+    }
 
     public String getName() { return name; }
     public String getLocaleLanguage() { return localeLanguage; }
-    public List<WindowState> getWindows() { return windows; }
+    public List<WindowState> getWindows() {
+        if (this.windows == null) {
+            this.windows = new java.util.ArrayList<>();
+        }
+        return this.windows;
+    }
     public void setName(String name) { this.name = name; }
     public void setLocaleLanguage(String localeLanguage) { this.localeLanguage = localeLanguage; }
     public void setWindows(List<WindowState> windows) { this.windows = windows; }

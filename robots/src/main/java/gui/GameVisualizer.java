@@ -129,7 +129,7 @@ public class GameVisualizer extends JPanel {
         currentRobot.getBehavior().update(context);
     }
     
-    // добавлен метод для пересчета экранных координат клика в виртуальные координаты мира
+    // метод для пересчета экранных координат клика в виртуальные координаты мира
     private void onMouseClick(Point screenPoint) {
         double scale = Math.min((double) getWidth() / VIRTUAL_WIDTH, (double) getHeight() / VIRTUAL_HEIGHT);
         double offsetX = (getWidth() - VIRTUAL_WIDTH * scale) / 2;
