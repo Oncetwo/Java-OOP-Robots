@@ -82,7 +82,8 @@ public class ManualRobot implements IRobotPlugin {
                 // Если робот уехал ниже нижнего края экрана, ставим его на нижнюю границу
                 y = 800;
             }
-
+            
+            /**
             java.awt.Shape finish = context.getFinishZone();
 
             if (finish != null) {
@@ -96,6 +97,7 @@ public class ManualRobot implements IRobotPlugin {
                     this.direction = 0;
                 }
             }
+            * */
         }
 
         // метод для проверки пересечения хитбокса робота с препятствиями карты
