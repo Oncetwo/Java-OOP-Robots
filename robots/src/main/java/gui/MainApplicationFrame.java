@@ -239,6 +239,10 @@ public class MainApplicationFrame extends JFrame // главное окно пр
             
             addWindow(gameWindow); 
             localizableWindows.add(gameWindow);
+            
+            if (timerWindow != null && !timerWindow.isClosed()) { // Связываем заново созданный визуализатор с окном таймера
+                gameWindow.getVisualizer().setTimeListener(timerWindow::setTime);
+            }
         } else {
             // Если окно просто свернуто (но не закрыто крестиком) - разворачиваем
             try {

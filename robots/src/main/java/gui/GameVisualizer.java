@@ -247,4 +247,30 @@ public class GameVisualizer extends JPanel {
         // Возвращаем всё как было (важно для корректной работы Swing в будущем)
         g2d.setTransform(oldTransform);
     }
+    
+
+    public void stopAndResetTimer() { // останавливает игровой таймер и сбрасывает флаги 
+        // Сбрасываем логические флаги таймера
+        isTimerRunning = false;
+        isFinished = false;
+        startTime = 0;
+        
+        // Обнуляем текст в окне таймера (отправляем 0 миллисекунд)
+        if (timeListener != null) {
+            timeListener.accept(0L);
+        }
+        
+        // Возвращаем робота на стартовую позицию (50, 750), 
+        // чтобы при следующем открытии окон таймер не стартовал автоматически
+        if (currentRobot != null && currentRobot.getBehavior() != null) {
+            currentRobot.getBehavior().setPosition(50.0, VIRTUAL_HEIGHT - 50.0);
+        }
+        
+        // Очищаем историю зажатых клавиш и кликов мыши, переводя игру в режим ожидания
+        pressedKeys.clear();
+        this.mouseTarget = null;
+        
+        // Запрашиваем перерисовку компонента
+        repaint();
+    }
 }
