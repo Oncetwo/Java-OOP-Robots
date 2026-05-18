@@ -10,6 +10,8 @@ import java.util.ResourceBundle;
 public abstract class AbstractLocalizableWindow extends JInternalFrame implements Localizable {
     protected ResourceBundle bundle;  // Храним bundle для обновления заголовка
     private final String titleKey; // запоминаем ключ заголовка 
+    
+    private boolean isClosingProgrammatically = false; // флаг для защиты от бесконечной рекурсии
 
     public AbstractLocalizableWindow(ResourceBundle bundle, String titleKey) {
         // Устанавливаем параметры окон по умолчанию
@@ -37,6 +39,11 @@ public abstract class AbstractLocalizableWindow extends JInternalFrame implement
     }
     
     private void confirmClose() {
+    	
+    	if (isClosingProgrammatically) {
+            return;
+        }
+    	
         int result = JOptionPane.showConfirmDialog(
             this,
             bundle.getString("dialog.confirm.close").replace("{0}", getTitle()),
@@ -46,7 +53,14 @@ public abstract class AbstractLocalizableWindow extends JInternalFrame implement
         );
 
         if (result == JOptionPane.YES_OPTION) {
-            dispose(); // Окно закрывается само
+        	try {
+        		isClosingProgrammatically = true;
+                setClosed(true); //  переводим в состояние закрыто (флаг внутренного состояния поменяется на закрытое)
+            } catch (java.beans.PropertyVetoException ex) {
+            	isClosingProgrammatically = false;
+                // Если система по какой-то причине заблокировала закрытие, используем dispose (освобождаем ресурсы экрана)
+                dispose();
+            }
         }
     }
 }

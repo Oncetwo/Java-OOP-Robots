@@ -32,4 +32,14 @@ public class GameWindow extends AbstractLocalizableWindow
     public GameVisualizer getVisualizer() {
         return m_visualizer; 
     }
+    
+    @Override
+    public void dispose() {
+        if (m_visualizer != null) { // перехватываем процесс уничтожения окна и перед тем, как оно исчезнет останаливаем таймер
+            m_visualizer.stopAndResetTimer();
+        }
+        
+        // Вызываем родительский метод для корректного освобождения ресурсов Swing
+        super.dispose();
+    }
 }

@@ -1,6 +1,7 @@
 package gui;
 
 import api.GameContext;
+
 import api.GameMap;
 import api.IRobotPlugin;
 import api.DefaultRobot;
@@ -15,6 +16,7 @@ import javax.swing.AbstractAction;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.KeyStroke;
+import java.awt.geom.Rectangle2D;
 
 public class GameVisualizer extends JPanel {
     private final Timer m_timer = initTimer(); // основной таймер для генерации событий
@@ -28,6 +30,16 @@ public class GameVisualizer extends JPanel {
 
     // Хранилище для кодов зажатых клавиш (Set гарантирует отсутствие дублей)
     private final Set<Integer> pressedKeys = new HashSet<>();
+    
+    private boolean isTimerRunning = false; // поля таймера прохождения карты
+    private boolean isFinished = false;
+    private long startTime = 0;
+    
+    private java.util.function.Consumer<Long> timeListener; // слушатель, который будет отправлять время в окно таймера
+
+    public void setTimeListener(java.util.function.Consumer<Long> listener) {
+        this.timeListener = listener;
+    }
     
     private GameMap currentMap = new api.maps.EmptyMap(); // поле карты - по умолчанию - пустая карта
     
@@ -127,6 +139,39 @@ public class GameVisualizer extends JPanel {
         };
 
         currentRobot.getBehavior().update(context);
+        
+        // Логика таймера и финиша
+        double rx = currentRobot.getBehavior().getX();
+        double ry = currentRobot.getBehavior().getY();
+
+        // Условие старта: таймер не запущен, игра не завершена, карта существует, финиш существует 
+        if (!isTimerRunning && !isFinished && currentMap != null && currentMap.getFinishZone() != null) { 
+            if (Math.abs(rx - 50) > 1 || Math.abs(ry - (VIRTUAL_HEIGHT - 50)) > 1) { // робот сдвинулся с места (Расстояние по X или Y от точки 50 больше 1 пикселя)
+                isTimerRunning = true;
+                startTime = System.currentTimeMillis(); // возвращаем количество миллисекунд 
+            }
+        }
+
+        // Обновление таймера и проверка финиша
+        if (isTimerRunning) { // если таймер запущен
+            long elapsedTime = System.currentTimeMillis() - startTime; // Текущее время минус время старта = сколько миллисекунд прошло с начала движения
+            
+            // Отправляем время в окно
+            if (timeListener != null) {
+                timeListener.accept(elapsedTime);
+            }
+
+            // Проверяем финиш 
+            java.awt.Shape finish = currentMap.getFinishZone(); // получаем финиш с текущей карты
+            if (finish != null) {
+                Rectangle2D robotHitbox = new Rectangle2D.Double(rx - 10, ry - 10, 20, 20);
+                if (finish.intersects(robotHitbox)) {
+                    isTimerRunning = false;
+                    isFinished = true;
+                    // Здесь в будущих задачах будет вызываться окно ввода имени
+                }
+            }
+        }
     }
     
     // метод для пересчета экранных координат клика в виртуальные координаты мира
@@ -154,6 +199,13 @@ public class GameVisualizer extends JPanel {
             // Передаем приказ роботу через интерфейс
             currentRobot.getBehavior().setPosition(spawnX, spawnY);
         }
+        // Сброс таймера
+        isTimerRunning = false;
+        isFinished = false;
+        if (timeListener != null) {
+            timeListener.accept(0L); // Обнуляем текст в окне таймера
+        }
+        
         repaint();
     }
 
@@ -194,5 +246,31 @@ public class GameVisualizer extends JPanel {
 
         // Возвращаем всё как было (важно для корректной работы Swing в будущем)
         g2d.setTransform(oldTransform);
+    }
+    
+
+    public void stopAndResetTimer() { // останавливает игровой таймер и сбрасывает флаги 
+        // Сбрасываем логические флаги таймера
+        isTimerRunning = false;
+        isFinished = false;
+        startTime = 0;
+        
+        // Обнуляем текст в окне таймера (отправляем 0 миллисекунд)
+        if (timeListener != null) {
+            timeListener.accept(0L);
+        }
+        
+        // Возвращаем робота на стартовую позицию (50, 750), 
+        // чтобы при следующем открытии окон таймер не стартовал автоматически
+        if (currentRobot != null && currentRobot.getBehavior() != null) {
+            currentRobot.getBehavior().setPosition(50.0, VIRTUAL_HEIGHT - 50.0);
+        }
+        
+        // Очищаем историю зажатых клавиш и кликов мыши, переводя игру в режим ожидания
+        pressedKeys.clear();
+        this.mouseTarget = null;
+        
+        // Запрашиваем перерисовку компонента
+        repaint();
     }
 }

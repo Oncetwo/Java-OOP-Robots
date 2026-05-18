@@ -45,6 +45,7 @@ public class MainApplicationFrame extends JFrame // главное окно пр
     
     private LogWindow logWindow; // ссылки на окна
     private GameWindow gameWindow;
+    private TimerWindow timerWindow;
     
     public MainApplicationFrame(ResourceBundle bundle) {
         this.bundle = bundle; 
@@ -69,6 +70,16 @@ public class MainApplicationFrame extends JFrame // главное окно пр
         desktopPane.add(gameWindow);
         gameWindow.setVisible(true);
         localizableWindows.add(gameWindow);
+        
+        // Создаем окно таймера
+        timerWindow = new TimerWindow(bundle);
+        timerWindow.setLocation(420, 10); 
+        desktopPane.add(timerWindow);
+        timerWindow.setVisible(true);
+        localizableWindows.add(timerWindow);
+
+        // Связываем визуализатор с окном таймера (паттерн Наблюдатель)
+        gameWindow.getVisualizer().setTimeListener(timerWindow::setTime);
 
         setJMenuBar(generateMenuBar()); // метод JFrame для установки меню
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);  // отключаем автоматическое закрытие при нажатие на крестик
@@ -182,8 +193,116 @@ public class MainApplicationFrame extends JFrame // главное окно пр
         menuBar.add(createTestMenu());
         menuBar.add(createMapMenu(bundle)); 
         menuBar.add(createPluginMenu(bundle));
+        menuBar.add(createWindowsMenu());
 
         return menuBar;
+    }
+    
+    
+     // Создает меню "Окна" для повторного открытия закрытых окон
+    private JMenu createWindowsMenu() {
+        // Безопасно получаем перевод (на случай, если ключи еще не добавлены в .properties просто берем русский вариант)
+        String menuName = bundle.containsKey("menu.windows") ? bundle.getString("menu.windows") : "Окна";
+        JMenu windowsMenu = new JMenu(menuName);
+        windowsMenu.setMnemonic(KeyEvent.VK_W);
+
+        String gameItemName = bundle.containsKey("menu.windows.showGame") ? bundle.getString("menu.windows.showGame") : "Показать игровое поле";
+        JMenuItem gameItem = new JMenuItem(gameItemName);
+        gameItem.addActionListener(e -> showGameWindow());
+        windowsMenu.add(gameItem);
+
+        String logItemName = bundle.containsKey("menu.windows.showLog") ? bundle.getString("menu.windows.showLog") : "Показать протокол работы";
+        JMenuItem logItem = new JMenuItem(logItemName);
+        logItem.addActionListener(e -> showLogWindow());
+        windowsMenu.add(logItem);
+        
+        String timerItemName = bundle.containsKey("menu.windows.showTimer") ? bundle.getString("menu.windows.showTimer") : "Показать таймер";
+        JMenuItem timerItem = new JMenuItem(timerItemName);
+        timerItem.addActionListener(e -> showTimerWindow());
+        windowsMenu.add(timerItem);
+
+        return windowsMenu;
+    }
+
+     // Логика для показа Игрового поля
+    private void showGameWindow() {
+        // Если окна нет или оно было закрыто 
+        if (gameWindow == null || gameWindow.isClosed()) {
+            // удаляем старую ссылку из списка локализации, чтобы не было утечки памяти
+            if (gameWindow != null) {
+                localizableWindows.remove(gameWindow); 
+            }
+            
+            // Создаем окно заново
+            gameWindow = new GameWindow(bundle);
+            gameWindow.setSize(400, 400);
+            
+            addWindow(gameWindow); 
+            localizableWindows.add(gameWindow);
+            
+            if (timerWindow != null && !timerWindow.isClosed()) { // Связываем заново созданный визуализатор с окном таймера
+                gameWindow.getVisualizer().setTimeListener(timerWindow::setTime);
+            }
+        } else {
+            // Если окно просто свернуто (но не закрыто крестиком) - разворачиваем
+            try {
+                if (gameWindow.isIcon()) { // проверяет, свернуто ли окно в данный момент (минимизировано)
+                    gameWindow.setIcon(false); // дает окну команду развернуться обратно
+                }
+                gameWindow.setSelected(true); // Выводим на передний план
+            } catch (PropertyVetoException e) {
+                Logger.error("Ошибка при развертывании игрового окна: " + e.getMessage());
+            }
+        }
+    }
+
+     // Логика для Протокола работы.
+    private void showLogWindow() {
+        if (logWindow == null || logWindow.isClosed()) {
+            if (logWindow != null) {
+                localizableWindows.remove(logWindow);
+            }
+            
+            logWindow = createLogWindow();
+            addWindow(logWindow);
+            localizableWindows.add(logWindow);
+        } else {
+            try {
+                if (logWindow.isIcon()) {
+                    logWindow.setIcon(false);
+                }
+                logWindow.setSelected(true);
+            } catch (PropertyVetoException e) {
+                Logger.error("Ошибка при развертывании окна логов: " + e.getMessage());
+            }
+        }
+    }
+    
+    // логика для окна таймера
+    private void showTimerWindow() {
+        if (timerWindow == null || timerWindow.isClosed()) {
+            if (timerWindow != null) {
+                localizableWindows.remove(timerWindow);
+            }
+            timerWindow = new TimerWindow(bundle);
+            timerWindow.setLocation(420, 10);
+            addWindow(timerWindow);
+            localizableWindows.add(timerWindow);
+            
+            // переподключаем слушатель к новому объекту окна
+            if (gameWindow != null && !gameWindow.isClosed()) {
+                gameWindow.getVisualizer().setTimeListener(timerWindow::setTime);
+            }
+        } else {
+            try {
+                if (timerWindow.isIcon()) {
+                	timerWindow.setIcon(false);
+                }
+                timerWindow.setSelected(true);
+            } catch (PropertyVetoException e) {
+                Logger.error("Ошибка при развертывании окна таймера: " + e.getMessage());
+            }
+        }
     }
     
     
@@ -416,12 +535,15 @@ public class MainApplicationFrame extends JFrame // главное окно пр
         };
 
         for (api.GameMap map : maps) {
-            JRadioButtonMenuItem menuItem = new JRadioButtonMenuItem(map.getName()); // пункт меню
-            menuItem.addActionListener((event) -> {
-                // При клике передаем выбранную карту в визуализатор
+        	String mapKey = map.getName(); // Получаем ключ от карты
+        	
+        	String mapDisplayName = bundle.containsKey(mapKey) ? bundle.getString(mapKey) : mapKey;
+            
+            JRadioButtonMenuItem menuItem = new JRadioButtonMenuItem(mapDisplayName);
+            
+            menuItem.addActionListener((event) -> { // при клике передаем выбранную карту в визуалайзер
                 gameWindow.getVisualizer().setMap(map);
             });
-            
             group.add(menuItem);
             mapMenu.add(menuItem);
             
