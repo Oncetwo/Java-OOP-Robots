@@ -19,4 +19,14 @@ public interface GameMap {
     default Shape getFinishZone() {
         return null;
     }
+
+    default java.util.List<api.IEnemy> getEnemies() {
+        return java.util.Collections.emptyList(); // По умолчанию карта безопасна
+    }
+
+    default void resetEnemies() {
+        for (api.IEnemy enemy : getEnemies()) {
+            enemy.getBehavior().reset();
+        }
+    }
 }

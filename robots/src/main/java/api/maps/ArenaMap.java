@@ -1,6 +1,7 @@
 package api.maps;
 
-import api.GameMap;
+import api.*;
+import api.enemies.*;
 import java.awt.*;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
@@ -8,6 +9,7 @@ import java.util.List;
 
 public class ArenaMap implements GameMap {
     private final List<Shape> obstacles = new ArrayList<>();
+    private final List<IEnemy> enemies = new ArrayList<>();
 
     public ArenaMap() {
         // Внешняя рамка мира 800x800
@@ -30,6 +32,11 @@ public class ArenaMap implements GameMap {
         obstacles.add(new Rectangle(300, 500, 200, 20));
         
         obstacles.add(new Rectangle(500, 320, 20, 200));
+
+        enemies.add(new AlienEnemy(600, 100));
+        enemies.add(new AlienEnemy(100, 600));
+
+
     }
 
     @Override
@@ -55,5 +62,10 @@ public class ArenaMap implements GameMap {
         // Золотой квадрат в центре
         g.setColor(new Color(255, 215, 0));
         g.fill(finishZone);
+    }
+
+    @Override
+    public List<api.IEnemy> getEnemies() {
+        return enemies;
     }
 }

@@ -14,13 +14,13 @@ import javax.swing.JOptionPane;
 public class RobotsProgram {
     public static void main(String[] args) {
         try {
-            // Установка современного внешнего вида
+            // установка внешнего вида
             UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");
         } catch (Exception e) {
             e.printStackTrace();
         }
 
-        // 1. Предварительная настройка локали
+        // Предварительная настройка локали
         Locale systemLocale = Locale.getDefault();
         ResourceBundle bundle = ResourceBundle.getBundle("messages", systemLocale);
         Components.translateComponents(bundle);
@@ -28,10 +28,10 @@ public class RobotsProgram {
         SwingUtilities.invokeLater(() -> {
             MainApplicationFrame frame = new MainApplicationFrame(bundle);
 
-            // Переменная для хранения профиля (пока не применяем)
+            // Переменная для хранения профиля
             Profile profileToRestore = null;
 
-            // 2. Логика выбора профиля
+            // Логика выбора профиля
             List<String> profiles = ProfileManager.listProfiles();
             if (!profiles.isEmpty()) {
                 int ask = JOptionPane.showConfirmDialog(
@@ -61,7 +61,7 @@ public class RobotsProgram {
 
                     if (chosen != null) {
                         try {
-                            // Загружаем объект из файла, но не вызываем restoreProfile сразу
+                            // Загружаем объект из файла
                             profileToRestore = ProfileManager.loadProfile(chosen);
                         } catch (Exception ex) {
                             Logger.error("Failed to load profile: " + ex.getMessage());
@@ -69,27 +69,47 @@ public class RobotsProgram {
                     }
                 }
             }
+            String defaultNickname = (profileToRestore != null && profileToRestore.getNickname() != null)
+                    ? profileToRestore.getNickname()
+                    : "";
+
+            // Вызываем окно ввода. Последний параметр defaultNickname подставит старый ник в текстовое поле
+            String nickname = (String) JOptionPane.showInputDialog(
+                    frame,
+                    "Введите ваш никнейм для таблицы лидеров:",
+                    "Выбор игрока",
+                    JOptionPane.PLAIN_MESSAGE,
+                    null,
+                    null,
+                    defaultNickname
+            );
+
+            // Если игрок закрыл окно или ввел пустую строку
+            if (nickname == null || nickname.trim().isEmpty()) {
+                // Если в профиле был ник — оставляем его, иначе генерируем случайный
+                nickname = defaultNickname.isEmpty() ? "Player" + (int)(Math.random() * 1000) : defaultNickname;
+            }
+
+            // Передаем актуальный никнейм в главное окно
+            frame.setCurrentNickname(nickname);
 
             frame.pack();
             frame.setVisible(true);
             frame.setExtendedState(Frame.MAXIMIZED_BOTH); // Теперь окно всегда будет большим при старте
 
-            // 4. ТЕПЕРЬ применяем настройки из профиля
             if (profileToRestore != null) {
-                // Профиль УЖЕ загружен, просто применяем его:
                 frame.restoreProfile(profileToRestore);
 
-                // РЕШЕНИЕ ПРОБЛЕМЫ С ЛОКАЛЬЮ И {0}:
                 ResourceBundle currentBundle = frame.getBundle();
                 String pattern = currentBundle.getString("log.message.profileRestored");
 
-                // Используем profileToRestore.getName(), чтобы получить строку с именем!
+                // используем profileToRestore.getName(), чтобы получить строку с именем
                 String finalMessage = java.text.MessageFormat.format(pattern, profileToRestore.getName());
 
                 Logger.debug(finalMessage);
 
             } else {
-                // Если профиля нет (первый запуск), только тогда разворачиваем на весь экран
+                // Если профиля нет разворачиваем на весь экран
                 frame.setExtendedState(java.awt.Frame.MAXIMIZED_BOTH);
             }
         });

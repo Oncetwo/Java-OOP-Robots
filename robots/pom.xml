@@ -47,7 +47,6 @@
                         <manifest>
                             <!-- указываем главный класс приложения -->
                             <mainClass>gui.RobotsProgram</mainClass>
-
                         </manifest>
                     </archive>
                 </configuration>

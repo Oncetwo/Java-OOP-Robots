@@ -27,6 +27,8 @@ public class GameVisualizer extends JPanel {
 
     private IRobotPlugin currentRobot = new DefaultRobot(); // поле для хранение текущего активного робота (стандартный по умолчанию)
     private Point mouseTarget = null; // по умолчанию пусть стоит
+    private long accumulatedTime = 0;
+    private Runnable onFinishListener;
 
     // Хранилище для кодов зажатых клавиш (Set гарантирует отсутствие дублей)
     private final Set<Integer> pressedKeys = new HashSet<>();
@@ -79,16 +81,17 @@ public class GameVisualizer extends JPanel {
      * Мы связываем физическую клавишу с логическим действием (нажата/отпущена)
      */
     private void setupKeyBindings() { // список клавиш, которые будем слушать
-        int[] keys = {KeyEvent.VK_W, KeyEvent.VK_A, KeyEvent.VK_S, KeyEvent.VK_D, 
-                      KeyEvent.VK_UP, KeyEvent.VK_LEFT, KeyEvent.VK_DOWN, KeyEvent.VK_RIGHT};
+        int[] keys = {KeyEvent.VK_W, KeyEvent.VK_A, KeyEvent.VK_S, KeyEvent.VK_D,
+                KeyEvent.VK_UP, KeyEvent.VK_LEFT, KeyEvent.VK_DOWN, KeyEvent.VK_RIGHT,
+                KeyEvent.VK_SPACE};
 
         for (int keyCode : keys) {
-            // Действие при нажатии (таблица (карта-ввода) что нажал пользователь - название действия)
+            // Действие при нажатии
             getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(keyCode, 0, false), "press" + keyCode);
-            getActionMap().put("press" + keyCode, new AbstractAction() { // карта действий (название действия - что делать))
-                @Override // AbstractAction - класс для создания действий
+            getActionMap().put("press" + keyCode, new AbstractAction() {
+                @Override
                 public void actionPerformed(ActionEvent e) {
-                    pressedKeys.add(keyCode); // (метод вызовется, когда действие сработает)
+                    pressedKeys.add(keyCode);
                 }
             });
 
@@ -153,22 +156,48 @@ public class GameVisualizer extends JPanel {
         }
 
         // Обновление таймера и проверка финиша
-        if (isTimerRunning) { // если таймер запущен
-            long elapsedTime = System.currentTimeMillis() - startTime; // Текущее время минус время старта = сколько миллисекунд прошло с начала движения
-            
-            // Отправляем время в окно
+        if (isTimerRunning) {
+            long elapsedTime = accumulatedTime + (System.currentTimeMillis() - startTime);
+            if (currentMap != null) {
+                for (api.IEnemy enemy : currentMap.getEnemies()) {
+                    // Перемещаем врага в сторону робота
+                    enemy.getBehavior().update(context, currentRobot.getBehavior());
+
+                    // Проверяем, поймали ли нас
+                    if (enemy.getBehavior().isCatching(currentRobot.getBehavior())) {
+                        stopAndResetTimer(); // Останавливаем игру и возвращаем робота на старт
+
+                        // Безопасно показываем всплывающее окно в UI-потоке
+                        javax.swing.SwingUtilities.invokeLater(() -> {
+                            javax.swing.JOptionPane.showMessageDialog(
+                                    GameVisualizer.this,
+                                    "Ohh shh*t, here we go again...",
+                                    "Wasted",
+                                    javax.swing.JOptionPane.WARNING_MESSAGE
+                            );
+                        });
+
+                        return; // Прерываем текущий тик обновления модели
+                    }
+                }
+            }
+
             if (timeListener != null) {
                 timeListener.accept(elapsedTime);
             }
 
-            // Проверяем финиш 
-            java.awt.Shape finish = currentMap.getFinishZone(); // получаем финиш с текущей карты
+            java.awt.Shape finish = currentMap.getFinishZone();
             if (finish != null) {
-                Rectangle2D robotHitbox = new Rectangle2D.Double(rx - 10, ry - 10, 20, 20);
+                java.awt.geom.Rectangle2D robotHitbox = new java.awt.geom.Rectangle2D.Double(rx - 10, ry - 10, 20, 20);
                 if (finish.intersects(robotHitbox)) {
                     isTimerRunning = false;
                     isFinished = true;
-                    // Здесь в будущих задачах будет вызываться окно ввода имени
+                    accumulatedTime = elapsedTime; // Фиксируем итоговое время
+
+                    // Вызываем слушатель финиша
+                    if (onFinishListener != null) {
+                        onFinishListener.run();
+                    }
                 }
             }
         }
@@ -205,6 +234,7 @@ public class GameVisualizer extends JPanel {
         if (timeListener != null) {
             timeListener.accept(0L); // Обнуляем текст в окне таймера
         }
+        if (currentMap != null) currentMap.resetEnemies();
         
         repaint();
     }
@@ -233,6 +263,9 @@ public class GameVisualizer extends JPanel {
         
         if (currentMap != null) {
             currentMap.draw(g2d); // Карта рисуется в масштабе
+            for (api.IEnemy enemy : currentMap.getEnemies()) {
+                enemy.getVisualizer().draw(g2d, enemy.getBehavior());
+            }
         }
 
         if (mouseTarget != null) {
@@ -254,6 +287,7 @@ public class GameVisualizer extends JPanel {
         isTimerRunning = false;
         isFinished = false;
         startTime = 0;
+        accumulatedTime = 0;
         
         // Обнуляем текст в окне таймера (отправляем 0 миллисекунд)
         if (timeListener != null) {
@@ -269,8 +303,21 @@ public class GameVisualizer extends JPanel {
         // Очищаем историю зажатых клавиш и кликов мыши, переводя игру в режим ожидания
         pressedKeys.clear();
         this.mouseTarget = null;
+        if (currentMap != null) currentMap.resetEnemies();
         
         // Запрашиваем перерисовку компонента
         repaint();
     }
+
+    public void setOnFinishListener(Runnable listener) {
+        this.onFinishListener = listener;
+    }
+    public GameMap getCurrentMap() { return currentMap; }
+    public IRobotPlugin getCurrentRobot() { return currentRobot; }
+    public long getAccumulatedTime() {
+        if (isTimerRunning) return accumulatedTime + (System.currentTimeMillis() - startTime);
+        return accumulatedTime;
+    }
+    public void setAccumulatedTime(long ms) { this.accumulatedTime = ms; }
+    public void resumeTimerState(boolean wasRunning) { this.isTimerRunning = wasRunning; }
 }

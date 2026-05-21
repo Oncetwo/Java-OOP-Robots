@@ -29,6 +29,7 @@ public class ProfileManager {
             // возвращаем только имя профиля (убираем расширение .xml)
             if (n.endsWith(".xml")) names.add(n.substring(0, n.length() - 4));
         }
+        names.remove("leaderboard");
         return names;
     }
 

@@ -9,6 +9,12 @@ public class Profile implements Serializable { // позволяет сохра�
     private String name; // имя профиля
     private String localeLanguage; // язык локали
     private List<WindowState> windows; // список состояний всех окон
+    private String nickname;
+    private String mapName;
+    private String robotName;
+    private double robotX;
+    private double robotY;
+    private long savedTime;
     public Profile() {}
 
     public Profile(String name, String localeLanguage, List<WindowState> windows) {
@@ -31,4 +37,22 @@ public class Profile implements Serializable { // позволяет сохра�
     public void setName(String name) { this.name = name; }
     public void setLocaleLanguage(String localeLanguage) { this.localeLanguage = localeLanguage; }
     public void setWindows(List<WindowState> windows) { this.windows = windows; }
+
+    public String getNickname() { return nickname; }
+    public void setNickname(String nickname) { this.nickname = nickname; }
+
+    public String getMapName() { return mapName; }
+    public void setMapName(String mapName) { this.mapName = mapName; }
+
+    public String getRobotName() { return robotName; }
+    public void setRobotName(String robotName) { this.robotName = robotName; }
+
+    public double getRobotX() { return robotX; }
+    public void setRobotX(double robotX) { this.robotX = robotX; }
+
+    public double getRobotY() { return robotY; }
+    public void setRobotY(double robotY) { this.robotY = robotY; }
+
+    public long getSavedTime() { return savedTime; }
+    public void setSavedTime(long savedTime) { this.savedTime = savedTime; }
 }

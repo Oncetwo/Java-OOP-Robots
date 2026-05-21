@@ -46,6 +46,9 @@ public class MainApplicationFrame extends JFrame // главное окно пр
     private LogWindow logWindow; // ссылки на окна
     private GameWindow gameWindow;
     private TimerWindow timerWindow;
+
+    private String currentNickname;
+    private LeaderboardWindow leaderboardWindow;
     
     public MainApplicationFrame(ResourceBundle bundle) {
         this.bundle = bundle; 
@@ -80,6 +83,40 @@ public class MainApplicationFrame extends JFrame // главное окно пр
 
         // Связываем визуализатор с окном таймера (паттерн Наблюдатель)
         gameWindow.getVisualizer().setTimeListener(timerWindow::setTime);
+
+        leaderboardWindow = new LeaderboardWindow(bundle);
+        desktopPane.add(leaderboardWindow);
+        localizableWindows.add(leaderboardWindow);
+        gameWindow.getVisualizer().setOnFinishListener(() -> {
+            long finalTime = gameWindow.getVisualizer().getAccumulatedTime();
+            String mapName = gameWindow.getVisualizer().getCurrentMap().getName();
+            String robotName = gameWindow.getVisualizer().getCurrentRobot().getName();
+
+            // Автоматически сохраняем результат в XML-файл таблицы лидеров
+            LeaderboardManager.saveRecord(new LeaderboardRecord(currentNickname, finalTime, mapName, robotName));
+
+            // Показываем диалоговое окно выбора дальнейшего действия
+            Object[] options = {"Забег заново", "Таблица лидеров"};
+            int selection = JOptionPane.showOptionDialog(
+                    this,
+                    "Финиш достигнут!\nВаше время: " + (finalTime / 1000.0) + " сек.",
+                    "Победа!",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.INFORMATION_MESSAGE,
+                    null,
+                    options,
+                    options[0]
+            );
+
+            if (selection == JOptionPane.YES_OPTION) {
+                // Если выбран "Забег заново", сбрасываем состояние игры в начальное
+                gameWindow.getVisualizer().stopAndResetTimer();
+            } else {
+                // Если выбрана "Таблица лидеров", открываем окно рекордов и сбрасываем карту
+                showLeaderboardWindow();
+                gameWindow.getVisualizer().stopAndResetTimer();
+            }
+        });
 
         setJMenuBar(generateMenuBar()); // метод JFrame для установки меню
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);  // отключаем автоматическое закрытие при нажатие на крестик
@@ -220,6 +257,10 @@ public class MainApplicationFrame extends JFrame // главное окно пр
         JMenuItem timerItem = new JMenuItem(timerItemName);
         timerItem.addActionListener(e -> showTimerWindow());
         windowsMenu.add(timerItem);
+
+        JMenuItem leaderboardItem = new JMenuItem("Показать таблицу лидеров");
+        leaderboardItem.addActionListener(e -> showLeaderboardWindow());
+        windowsMenu.add(leaderboardItem);
 
         return windowsMenu;
     }
@@ -435,8 +476,28 @@ public class MainApplicationFrame extends JFrame // главное окно пр
                         gameWindow.isMaximum()
                 ));
             }
+            if (leaderboardWindow != null) {
+                java.awt.Rectangle bounds = getRealWindowBounds(leaderboardWindow);
+                states.add(new WindowState(
+                        "leaderboard",
+                        bounds.x, bounds.y,
+                        bounds.width, bounds.height,
+                        leaderboardWindow.isVisible(),
+                        leaderboardWindow.isIcon(),
+                        leaderboardWindow.isMaximum()
+                ));
+            }
 
             Profile p = new Profile(profileName, currentLocale.getLanguage(), states);
+            p.setNickname(this.currentNickname);
+            if (gameWindow != null && gameWindow.getVisualizer() != null) {
+                GameVisualizer v = gameWindow.getVisualizer();
+                p.setMapName(v.getCurrentMap().getName());
+                p.setRobotName(v.getCurrentRobot().getName());
+                p.setRobotX(v.getCurrentRobot().getBehavior().getX());
+                p.setRobotY(v.getCurrentRobot().getBehavior().getY());
+                p.setSavedTime(v.getAccumulatedTime());
+            }
             ProfileManager.saveProfile(p);
             Logger.debug(bundle.getString("log.message.profileSaved").replace("{0}", profileName));
         } catch (Exception ex) {
@@ -448,6 +509,36 @@ public class MainApplicationFrame extends JFrame // главное окно пр
     // Восстанавливает профиль в уже созданном окне
     public void restoreProfile(Profile profile) {
         if (profile == null) return;
+
+
+        // Восстанавливаем состояние игры
+        if (gameWindow != null && gameWindow.getVisualizer() != null) {
+            GameVisualizer v = gameWindow.getVisualizer();
+
+            // 1. Восстанавливаем Карту
+            if (profile.getMapName() != null) {
+                api.GameMap[] maps = {new api.maps.EmptyMap(), new api.maps.CrossMap(), new api.maps.ArenaMap(), new api.maps.LabyrinthMap()};
+                for (api.GameMap m : maps) {
+                    if (m.getName().equals(profile.getMapName())) {
+                        v.setMap(m);
+                        break;
+                    }
+                }
+            }
+
+            // 2. Восстанавливаем Робота (из стандартных)
+            // 2. Восстанавливаем Робота (Динамически через Реестр)
+            if (profile.getRobotName() != null) {
+                v.setPlugin(RobotRegistry.createRobot(profile.getRobotName()));
+                setJMenuBar(generateMenuBar()); // Перерисовываем меню, чтобы галочка встала верно
+            }
+
+            // 3. Устанавливаем координаты и время
+            if (v.getCurrentRobot() != null && v.getCurrentRobot().getBehavior() != null) {
+                v.getCurrentRobot().getBehavior().setPosition(profile.getRobotX(), profile.getRobotY());
+            }
+            v.setAccumulatedTime(profile.getSavedTime());
+        }
 
         // Сначала восстановим локаль, если она отличается
         try {
@@ -474,49 +565,89 @@ public class MainApplicationFrame extends JFrame // главное окно пр
                     try { gameWindow.setMaximum(ws.isMaximized()); } catch (PropertyVetoException ex) {}
                     try { gameWindow.setIcon(ws.isIcon()); } catch (PropertyVetoException ex) {}
                 }
+                else if ("leaderboard".equals(ws.getId()) && leaderboardWindow != null) {
+                    leaderboardWindow.setBounds(ws.getX(), ws.getY(), ws.getWidth(), ws.getHeight());
+                    leaderboardWindow.setVisible(ws.isVisible());
+                    try { leaderboardWindow.setMaximum(ws.isMaximized()); } catch (PropertyVetoException ex) {}
+                    try { leaderboardWindow.setIcon(ws.isIcon()); } catch (PropertyVetoException ex) {}
+                    if (ws.isVisible()) {
+                        leaderboardWindow.refreshData(); // Если окно открыто, сразу обновляем сетку рекордов
+                    }
+                }
             } catch (Exception ex) {
                 // не прерываем восстановление при ошибке частичного окна
             }
         }
     }
 
-    private JMenu createPluginMenu(ResourceBundle bundle) {
-        JMenu pluginMenu = new JMenu(bundle.getString("menu.plugins"));
-        pluginMenu.setMnemonic(KeyEvent.VK_P);
+    private javax.swing.JMenu createPluginMenu(ResourceBundle bundle) {
+        javax.swing.JMenu pluginMenu = new javax.swing.JMenu(bundle.getString("menu.plugins"));
+        pluginMenu.setMnemonic(java.awt.event.KeyEvent.VK_P);
 
-        JMenuItem loadItem = new JMenuItem(bundle.getString("menu.plugins.load"));
-        loadItem.addActionListener((ActionEvent e) -> {
-            // Открываем диалоговое окно выбора файла
-            JFileChooser fileChooser = new JFileChooser();
+        javax.swing.ButtonGroup robotGroup = new javax.swing.ButtonGroup();
+        String currentRobotName = (gameWindow != null && gameWindow.getVisualizer() != null && gameWindow.getVisualizer().getCurrentRobot() != null)
+                ? gameWindow.getVisualizer().getCurrentRobot().getName()
+                : "";
+
+        // 1. Динамическое создание кнопок из реестра
+        for (String robotName : RobotRegistry.getAvailableRobotNames()) {
+            javax.swing.JRadioButtonMenuItem item = new javax.swing.JRadioButtonMenuItem(robotName);
+
+            item.addActionListener(e -> {
+                if (gameWindow != null) {
+                    gameWindow.getVisualizer().setPlugin(RobotRegistry.createRobot(robotName));
+                }
+            });
+
+            // Ставим галочку на активном роботе
+            if (robotName.equals(currentRobotName) || (currentRobotName.isEmpty() && robotName.contains("Стандартный"))) {
+                item.setSelected(true);
+            }
+
+            robotGroup.add(item);
+            pluginMenu.add(item);
+        }
+
+        pluginMenu.addSeparator();
+
+        // 2. Кнопка загрузки стороннего JAR
+        javax.swing.JMenuItem loadItem = new javax.swing.JMenuItem(bundle.getString("menu.plugins.load"));
+        loadItem.addActionListener((java.awt.event.ActionEvent e) -> {
+            javax.swing.JFileChooser fileChooser = new javax.swing.JFileChooser();
             fileChooser.setDialogTitle(bundle.getString("dialog.plugin.chooser.title"));
-            fileChooser.setFileFilter(new FileNameExtensionFilter("JAR Files (*.jar)", "jar"));
+            fileChooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("JAR Files (*.jar)", "jar"));
 
-            // Если пользователь выбрал файл и нажал "ОК"
-            if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-                File jarFile = fileChooser.getSelectedFile();
+            if (fileChooser.showOpenDialog(this) == javax.swing.JFileChooser.APPROVE_OPTION) {
+                java.io.File jarFile = fileChooser.getSelectedFile();
                 try {
-                    // Загружаем плагин через наш лоадер
-                    IRobotPlugin plugin = PluginLoader.loadPlugin(jarFile);
+                    api.IRobotPlugin plugin = PluginLoader.loadPlugin(jarFile);
 
-                    // Устанавливаем плагин в игровое окно (если оно открыто)
+                    // Добавляем загруженный плагин в реестр
+                    RobotRegistry.register(() -> {
+                        try {
+                            return plugin.getClass().getDeclaredConstructor().newInstance();
+                        } catch (Exception ex) {
+                            return plugin;
+                        }
+                    });
+
                     if (gameWindow != null) {
-                        gameWindow.setRobotPlugin(plugin);
-                        Logger.debug(bundle.getString("log.plugin.loaded") + " " + plugin.getName());
+                        gameWindow.setRobotPlugin(RobotRegistry.createRobot(plugin.getName()));
+                        log.Logger.debug(bundle.getString("log.plugin.loaded") + " " + plugin.getName());
+                        setJMenuBar(generateMenuBar()); // Обновляем меню с новой галочкой
                     }
                 } catch (Exception ex) {
-                	Logger.error(bundle.getString("log.plugin.error") + " " + ex.getMessage());
-                    JOptionPane.showMessageDialog(this, // создание стандартного окна с ошибкой
+                    log.Logger.error(bundle.getString("log.plugin.error") + " " + ex.getMessage());
+                    javax.swing.JOptionPane.showMessageDialog(this,
                             bundle.getString("dialog.plugin.error.message") + "\n" + ex.getMessage(),
                             bundle.getString("dialog.plugin.error.title"),
-                            JOptionPane.ERROR_MESSAGE);
+                            javax.swing.JOptionPane.ERROR_MESSAGE);
                 }
             }
         });
-
         pluginMenu.add(loadItem);
         return pluginMenu;
     }
-    
     
     // Создание меню выбора карт
     private JMenu createMapMenu(ResourceBundle bundle) {
@@ -558,5 +689,27 @@ public class MainApplicationFrame extends JFrame // главное окно пр
 
     public ResourceBundle getBundle() {
         return this.bundle;
+    }
+
+    public void setCurrentNickname(String currentNickname) {
+        this.currentNickname = currentNickname;
+    }
+
+    private void showLeaderboardWindow() {
+        if (leaderboardWindow == null || leaderboardWindow.isClosed()) {
+            leaderboardWindow = new LeaderboardWindow(bundle);
+            desktopPane.add(leaderboardWindow);
+            localizableWindows.add(leaderboardWindow);
+        }
+        leaderboardWindow.refreshData(); // Перечитываем новые рекорды из файла перед показом
+        leaderboardWindow.setVisible(true);
+        try {
+            if (leaderboardWindow.isIcon()) {
+                leaderboardWindow.setIcon(false);
+            }
+            leaderboardWindow.setSelected(true);
+        } catch (PropertyVetoException e) {
+            Logger.error("Ошибка при развертывании таблицы лидеров: " + e.getMessage());
+        }
     }
 }
