@@ -17,7 +17,6 @@ public class PluginMenuTest {
         JMenuBar menuBar = frame.getJMenuBar();
         assertNotNull(menuBar, "Главное окно должно содержать панель меню");
 
-        //ищю меню плагинов среди всех меню в панели
         JMenu pluginMenu = null;
         String expectedMenuTitle = bundle.getString("menu.plugins");
 
@@ -32,7 +31,9 @@ public class PluginMenuTest {
         assertNotNull(pluginMenu);
         assertEquals(KeyEvent.VK_P, pluginMenu.getMnemonic(), "Меню плагинов должно активироваться по кнопке P");
         assertTrue(pluginMenu.getItemCount() > 0, "Меню плагинов не должно быть пустым");
-        JMenuItem loadItem = pluginMenu.getItem(0);
+
+        JMenuItem loadItem = pluginMenu.getItem(pluginMenu.getItemCount() - 1);
+
         String expectedItemTitle = bundle.getString("menu.plugins.load");
         assertEquals(expectedItemTitle, loadItem.getText());
         assertTrue(loadItem.getActionListeners().length > 0, "Пункт меню загрузки должен иметь зарегистрированный ActionListener");

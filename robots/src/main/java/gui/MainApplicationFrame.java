@@ -1,11 +1,7 @@
 package gui;
 
-import javax.swing.JFileChooser;
-import javax.swing.filechooser.FileNameExtensionFilter;
-import java.awt.event.ActionEvent;
-import java.io.File;
-import java.awt.Dimension;
-import java.awt.Toolkit;
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.List;
@@ -192,7 +188,7 @@ public class MainApplicationFrame extends JFrame // главное окно пр
         }
     }
 
-    private java.awt.Rectangle getRealWindowBounds(javax.swing.JInternalFrame window) {
+    private Rectangle getRealWindowBounds(javax.swing.JInternalFrame window) {
         // Если окно развернуто или свернуто в значок, берем его "нормальные" сохраненные границы
         if (window.isMaximum() || window.isIcon()) {
             java.awt.Rectangle normalBounds = window.getNormalBounds();
@@ -265,7 +261,6 @@ public class MainApplicationFrame extends JFrame // главное окно пр
         return windowsMenu;
     }
 
-     // Логика для показа Игрового поля
     private void showGameWindow() {
         // Если окна нет или оно было закрыто 
         if (gameWindow == null || gameWindow.isClosed()) {
@@ -506,16 +501,12 @@ public class MainApplicationFrame extends JFrame // главное окно пр
         }
     }
 
-    // Восстанавливает профиль в уже созданном окне
     public void restoreProfile(Profile profile) {
         if (profile == null) return;
-
-
-        // Восстанавливаем состояние игры
         if (gameWindow != null && gameWindow.getVisualizer() != null) {
             GameVisualizer v = gameWindow.getVisualizer();
 
-            // 1. Восстанавливаем Карту
+            //восстанавливаем Карту
             if (profile.getMapName() != null) {
                 api.GameMap[] maps = {new api.maps.EmptyMap(), new api.maps.CrossMap(), new api.maps.ArenaMap(), new api.maps.LabyrinthMap()};
                 for (api.GameMap m : maps) {
@@ -525,15 +516,13 @@ public class MainApplicationFrame extends JFrame // главное окно пр
                     }
                 }
             }
-
-            // 2. Восстанавливаем Робота (из стандартных)
-            // 2. Восстанавливаем Робота (Динамически через Реестр)
+            //восстанавливаем Робота
             if (profile.getRobotName() != null) {
                 v.setPlugin(RobotRegistry.createRobot(profile.getRobotName()));
-                setJMenuBar(generateMenuBar()); // Перерисовываем меню, чтобы галочка встала верно
+                setJMenuBar(generateMenuBar());
             }
 
-            // 3. Устанавливаем координаты и время
+            //устанавливаем координаты и время
             if (v.getCurrentRobot() != null && v.getCurrentRobot().getBehavior() != null) {
                 v.getCurrentRobot().getBehavior().setPosition(profile.getRobotX(), profile.getRobotY());
             }
@@ -552,14 +541,12 @@ public class MainApplicationFrame extends JFrame // главное окно пр
         for (WindowState ws : profile.getWindows()) {
             try {
                 if ("log".equals(ws.getId()) && logWindow != null) {
-                    // Восстанавливаем строго в этом порядке!
                     logWindow.setBounds(ws.getX(), ws.getY(), ws.getWidth(), ws.getHeight());
                     logWindow.setVisible(ws.isVisible());
                     try { logWindow.setMaximum(ws.isMaximized()); } catch (PropertyVetoException ex) {}
                     try { logWindow.setIcon(ws.isIcon()); } catch (PropertyVetoException ex) {}
 
                 } else if ("game".equals(ws.getId()) && gameWindow != null) {
-                    // Восстанавливаем строго в этом порядке!
                     gameWindow.setBounds(ws.getX(), ws.getY(), ws.getWidth(), ws.getHeight());
                     gameWindow.setVisible(ws.isVisible());
                     try { gameWindow.setMaximum(ws.isMaximized()); } catch (PropertyVetoException ex) {}
@@ -571,7 +558,7 @@ public class MainApplicationFrame extends JFrame // главное окно пр
                     try { leaderboardWindow.setMaximum(ws.isMaximized()); } catch (PropertyVetoException ex) {}
                     try { leaderboardWindow.setIcon(ws.isIcon()); } catch (PropertyVetoException ex) {}
                     if (ws.isVisible()) {
-                        leaderboardWindow.refreshData(); // Если окно открыто, сразу обновляем сетку рекордов
+                        leaderboardWindow.refreshData();
                     }
                 }
             } catch (Exception ex) {
@@ -580,8 +567,8 @@ public class MainApplicationFrame extends JFrame // главное окно пр
         }
     }
 
-    private javax.swing.JMenu createPluginMenu(ResourceBundle bundle) {
-        javax.swing.JMenu pluginMenu = new javax.swing.JMenu(bundle.getString("menu.plugins"));
+    private JMenu createPluginMenu(ResourceBundle bundle) {
+        JMenu pluginMenu = new javax.swing.JMenu(bundle.getString("menu.plugins"));
         pluginMenu.setMnemonic(java.awt.event.KeyEvent.VK_P);
 
         javax.swing.ButtonGroup robotGroup = new javax.swing.ButtonGroup();
@@ -589,9 +576,9 @@ public class MainApplicationFrame extends JFrame // главное окно пр
                 ? gameWindow.getVisualizer().getCurrentRobot().getName()
                 : "";
 
-        // 1. Динамическое создание кнопок из реестра
+        //создание кнопок из реестра
         for (String robotName : RobotRegistry.getAvailableRobotNames()) {
-            javax.swing.JRadioButtonMenuItem item = new javax.swing.JRadioButtonMenuItem(robotName);
+            JRadioButtonMenuItem item = new JRadioButtonMenuItem(robotName);
 
             item.addActionListener(e -> {
                 if (gameWindow != null) {
@@ -599,7 +586,7 @@ public class MainApplicationFrame extends JFrame // главное окно пр
                 }
             });
 
-            // Ставим галочку на активном роботе
+            //фиксируем активного робота
             if (robotName.equals(currentRobotName) || (currentRobotName.isEmpty() && robotName.contains("Стандартный"))) {
                 item.setSelected(true);
             }
@@ -610,14 +597,14 @@ public class MainApplicationFrame extends JFrame // главное окно пр
 
         pluginMenu.addSeparator();
 
-        // 2. Кнопка загрузки стороннего JAR
-        javax.swing.JMenuItem loadItem = new javax.swing.JMenuItem(bundle.getString("menu.plugins.load"));
+        // кнопка загрузки jar
+        JMenuItem loadItem = new JMenuItem(bundle.getString("menu.plugins.load"));
         loadItem.addActionListener((java.awt.event.ActionEvent e) -> {
-            javax.swing.JFileChooser fileChooser = new javax.swing.JFileChooser();
+            JFileChooser fileChooser = new JFileChooser();
             fileChooser.setDialogTitle(bundle.getString("dialog.plugin.chooser.title"));
             fileChooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("JAR Files (*.jar)", "jar"));
 
-            if (fileChooser.showOpenDialog(this) == javax.swing.JFileChooser.APPROVE_OPTION) {
+            if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
                 java.io.File jarFile = fileChooser.getSelectedFile();
                 try {
                     api.IRobotPlugin plugin = PluginLoader.loadPlugin(jarFile);

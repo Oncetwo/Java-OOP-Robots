@@ -61,4 +61,38 @@ public class ProfileManagerTest {
         assertTrue(loadedLogWindow.isMaximized(), "Окно логов должно запомнить масштабируемость");
         assertEquals(300, loadedLogWindow.getWidth(), "Ширина должна сохраниться");
     }
+
+    @Test
+    public void testExtendedProfileSaveAndLoad() throws IOException {
+        ArrayList<WindowState> windows = new ArrayList<>();
+        // Окно игры и окно таблицы лидеров
+        windows.add(new WindowState("game", 10, 20, 800, 600, true, false, false));
+        windows.add(new WindowState("leaderboard", 100, 100, 500, 300, true, false, false));
+
+        Profile p = new Profile(TEST_PROFILE_NAME, "ru", windows);
+
+        // Заполняем новые игровые поля
+        p.setNickname("SpaceRanger");
+        p.setMapName("map.arena");
+        p.setRobotName("Призрачный Робот (Рывок - Пробел)");
+        p.setRobotX(450.5);
+        p.setRobotY(300.0);
+        p.setSavedTime(15400L); // 15.4 секунды
+
+        // Сохраняем и сразу загружаем обратно
+        ProfileManager.saveProfile(p);
+        Profile loadedProfile = ProfileManager.loadProfile(TEST_PROFILE_NAME);
+
+        // Проверяем
+        assertNotNull(loadedProfile);
+        assertEquals("SpaceRanger", loadedProfile.getNickname(), "Никнейм должен сохраняться");
+        assertEquals("map.arena", loadedProfile.getMapName(), "Карта должна сохраняться");
+        assertEquals("Призрачный Робот (Рывок - Пробел)", loadedProfile.getRobotName(), "Имя плагина должно сохраняться");
+        assertEquals(450.5, loadedProfile.getRobotX(), "Координата X должна сохраняться");
+        assertEquals(15400L, loadedProfile.getSavedTime(), "Время таймера должно сохраняться");
+
+        // Проверяем, что окно лидерборда тоже запомнилось
+        boolean hasLeaderboard = loadedProfile.getWindows().stream().anyMatch(w -> "leaderboard".equals(w.getId()));
+        assertTrue(hasLeaderboard, "Состояние окна таблицы лидеров должно сохраняться");
+    }
 }

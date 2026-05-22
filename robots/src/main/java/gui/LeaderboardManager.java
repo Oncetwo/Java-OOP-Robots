@@ -17,28 +17,24 @@ public class LeaderboardManager {
         for (int i = 0; i < records.size(); i++) {
             LeaderboardRecord existing = records.get(i);
 
-            // Проверяем уникальное сочетание: Ник + Карта + Робот
+            //проверка данных (ник, карта, робот)
             if (existing.getNickname().equals(record.getNickname()) &&
                     existing.getMapName().equals(record.getMapName()) &&
                     existing.getRobotName().equals(record.getRobotName())) {
 
                 foundExisting = true;
-                // Если новое время лучше (меньше), обновляем старый рекорд
+                //если новое время лучше - обновляем рекорд
                 if (record.getTimeMs() < existing.getTimeMs()) {
                     records.set(i, record);
                 }
-                break; // Совпадение найдено, выходим из цикла
+                break;
             }
         }
 
-        // Если игрок еще ни разу не проходил эту карту на этом роботе, просто добавляем запись
         if (!foundExisting) {
             records.add(record);
         }
-
-        // Сортируем таблицу (лучшие времена будут вверху)
         Collections.sort(records);
-
         try (XMLEncoder encoder = new XMLEncoder(new BufferedOutputStream(new FileOutputStream(FILE)))) {
             encoder.writeObject(records);
             encoder.flush();
@@ -47,7 +43,6 @@ public class LeaderboardManager {
         }
     }
 
-    @SuppressWarnings("unchecked")
     public static List<LeaderboardRecord> loadRecords() {
         if (!FILE.exists()) return new ArrayList<>();
 

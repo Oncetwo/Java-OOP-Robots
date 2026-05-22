@@ -142,12 +142,10 @@ public class GameVisualizer extends JPanel {
         };
 
         currentRobot.getBehavior().update(context);
-        
-        // Логика таймера и финиша
         double rx = currentRobot.getBehavior().getX();
         double ry = currentRobot.getBehavior().getY();
 
-        // Условие старта: таймер не запущен, игра не завершена, карта существует, финиш существует 
+        // условие старта: таймер не запущен, игра не завершена, карта существует, финиш существует
         if (!isTimerRunning && !isFinished && currentMap != null && currentMap.getFinishZone() != null) { 
             if (Math.abs(rx - 50) > 1 || Math.abs(ry - (VIRTUAL_HEIGHT - 50)) > 1) { // робот сдвинулся с места (Расстояние по X или Y от точки 50 больше 1 пикселя)
                 isTimerRunning = true;
@@ -160,14 +158,11 @@ public class GameVisualizer extends JPanel {
             long elapsedTime = accumulatedTime + (System.currentTimeMillis() - startTime);
             if (currentMap != null) {
                 for (api.IEnemy enemy : currentMap.getEnemies()) {
-                    // Перемещаем врага в сторону робота
+                    //активировали врага
                     enemy.getBehavior().update(context, currentRobot.getBehavior());
 
-                    // Проверяем, поймали ли нас
                     if (enemy.getBehavior().isCatching(currentRobot.getBehavior())) {
-                        stopAndResetTimer(); // Останавливаем игру и возвращаем робота на старт
-
-                        // Безопасно показываем всплывающее окно в UI-потоке
+                        stopAndResetTimer(); //останавливаем игру и возвращаем робота на старт
                         javax.swing.SwingUtilities.invokeLater(() -> {
                             javax.swing.JOptionPane.showMessageDialog(
                                     GameVisualizer.this,
@@ -177,7 +172,7 @@ public class GameVisualizer extends JPanel {
                             );
                         });
 
-                        return; // Прерываем текущий тик обновления модели
+                        return;
                     }
                 }
             }

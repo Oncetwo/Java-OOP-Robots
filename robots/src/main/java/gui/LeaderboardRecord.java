@@ -28,7 +28,7 @@ public class LeaderboardRecord implements Serializable, Comparable<LeaderboardRe
     public String getRobotName() { return robotName; }
     public void setRobotName(String robotName) { this.robotName = robotName; }
 
-    // Сортировка по времени (от меньшего к большему)
+    //сортировка по времени
     @Override
     public int compareTo(LeaderboardRecord o) {
         return Long.compare(this.timeMs, o.timeMs);
